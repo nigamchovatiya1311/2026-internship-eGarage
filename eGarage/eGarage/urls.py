@@ -20,4 +20,5 @@ from django.urls import include, path
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('core/', include('core.urls')),  # Include the URLs from the core app
+    path('garage/',include('garage.urls')), # Include the URLS from the garage app
 ]

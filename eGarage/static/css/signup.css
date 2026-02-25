@@ -1,0 +1,121 @@
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+/* Clean Background (No Gradient) */
+body {
+    min-height: 100vh;
+    background: #f4f6f9;  /* light professional background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Container */
+.signup-container {
+    width: 100%;
+    max-width: 520px;  /* Increased width */
+}
+
+/* Card */
+.signup-card {
+    background: #ffffff;
+    padding: 24px 35px;   /* Reduced height */
+    border-radius: 12px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15); /* Slightly stronger shadow */
+}
+
+/* Heading */
+.signup-card h2 {
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 22px;
+    font-weight: 600;
+    color: #2c2c2c;
+}
+
+/* Compact Spacing */
+.form-fields p {
+    margin-bottom: 10px;
+}
+
+/* Labels */
+.form-fields label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Inputs & Select */
+.form-fields input,
+.form-fields select {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 4px;
+    border-radius: 6px;
+    border: 1px solid #dcdcdc;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+/* Focus Effect */
+.form-fields input:focus,
+.form-fields select:focus {
+    outline: none;
+    border-color: #4e73df;
+    box-shadow: 0 0 0 2px rgba(78, 115, 223, 0.1);
+}
+
+/* Help Text Smaller */
+.form-fields ul {
+    font-size: 12px;
+    margin-top: 4px;
+    margin-left: 18px;
+    color: #666;
+}
+
+/* Button */
+.signup-btn {
+    width: 100%;
+    padding: 9px;
+    border: none;
+    background: #4e73df;
+    color: white;
+    font-size: 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: 0.3s ease;
+}
+
+.signup-btn:hover {
+    background: #2e59d9;
+}
+
+/* Login Link */
+.login-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.login-link a {
+    color: #4e73df;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .signup-container {
+        max-width: 95%;
+    }
+
+    .signup-card {
+        padding: 20px;
+    }
+}

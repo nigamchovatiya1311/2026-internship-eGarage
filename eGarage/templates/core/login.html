@@ -9,10 +9,10 @@
 </head>
 <body>
 
-    <div class="signup-container">
+<div class="signup-container">
         <div class="signup-card">
-            <h2>Create Account</h2>
-
+            <h2>Login Account</h2>
+            
             <form method="POST">
                 {% csrf_token %}
                 
@@ -20,14 +20,15 @@
                     {{ form.as_p }}
                 </div>
 
-                <button type="submit" class="signup-btn">Sign Up</button>
-            </form>
+                <button type="submit" class="signup-btn">Login</button>
+            </form>     
 
-            <p class="login-link">
-                Already have an account? <a href="{% url 'login' %}">Login</a>
-            </p>
-        </div>
     </div>
+</div>
+
+</form>
+
+
 
 </body>
 </html>
