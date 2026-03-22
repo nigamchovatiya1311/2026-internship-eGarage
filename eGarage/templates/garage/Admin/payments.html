@@ -1,0 +1,50 @@
+{% extends "garage/Admin/base.html" %}
+{% block page_title %}Payments{% endblock %}
+{% block breadcrumb %}Payments{% endblock %}
+{% block content %}
+<section class="dash-section active" id="sec-payments">
+  <div class="section-header">
+    <div><h1 class="section-title">Payments</h1>
+    <p class="section-sub">Transaction records for all bookings.</p></div>
+  </div>
+  <div class="stats-grid four-col">
+    <div class="mini-stat" style="--c:#16a34a"><i class="fas fa-check-circle"></i><div><strong>₹{{ collected }}</strong><span>Collected</span></div></div>
+    <div class="mini-stat" style="--c:#f9a825"><i class="fas fa-clock"></i><div><strong>₹{{ pending_amount }}</strong><span>Pending</span></div></div>
+    <div class="mini-stat" style="--c:#dc2626"><i class="fas fa-times-circle"></i><div><strong>₹{{ failed_amount }}</strong><span>Failed</span></div></div>
+    <div class="mini-stat" style="--c:#3b82f6"><i class="fas fa-rotate-left"></i><div><strong>₹{{ refunded_amount }}</strong><span>Refunded</span></div></div>
+  </div>
+  <div class="table-card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Payment ID</th><th>Booking</th><th>Customer</th><th>Amount</th><th>Method</th><th>Transaction ID</th><th>Payment Date</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for pay in payments %}
+          <tr>
+            <td><strong>#PAY{{ pay.id|stringformat:"03d" }}</strong></td>
+            <td>#BK{{ pay.booking.id }}</td>
+            <td>{{ pay.booking.customer.get_full_name }}</td>
+            <td>₹{{ pay.amount }}</td>
+            <td>
+              {% if pay.method == 'cash' %}<span class="method-tag cash"><i class="fas fa-money-bill"></i> Cash</span>
+              {% elif pay.method == 'card' %}<span class="method-tag card"><i class="fas fa-credit-card"></i> Card</span>
+              {% else %}<span class="method-tag online"><i class="fas fa-globe"></i> Online</span>{% endif %}
+            </td>
+            <td>{{ pay.transaction_id|default:"—" }}</td>
+            <td>{{ pay.created_at|date:"d M Y, h:i A"|default:"—" }}</td>
+            <td>
+              {% if pay.status == 'completed' %}<span class="badge success">Completed</span>
+              {% elif pay.status == 'pending' %}<span class="badge warning">Pending</span>
+              {% elif pay.status == 'refunded' %}<span class="badge info">Refunded</span>
+              {% else %}<span class="badge danger">Failed</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" style="text-align:center;color:var(--text-muted)">No payments found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer"><span class="table-info">Showing {{ payments|length }} payments</span></div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "garage/Customer/base.html" %}
+{% load static %}
+
+{% block page_title %}Book a Service{% endblock %}
+{% block breadcrumb %}Book a Service{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">Book a Service</h1>
+    <p class="section-sub">Choose a service and pick your slot.</p>
+  </div>
+</div>
+
+<!-- SERVICE CARDS -->
+<div class="svc-grid">
+  {% for svc in services %}
+  <div class="svc-card {% if selected_service == svc.serviceId|stringformat:'s' %}selected{% endif %}"
+       onclick="selectService({{ svc.serviceId }}, '{{ svc.serviceName|escapejs }}', {{ svc.servicePrice }})">
+    <div class="svc-ic" style="background:var(--primary-light);color:var(--primary)">
+      <i class="fas fa-wrench"></i>
+    </div>
+    <span class="svc-name">{{ svc.serviceName }}</span>
+    <span class="svc-price">₹{{ svc.servicePrice }}</span>
+    {% if svc.estimatedDuration %}
+    <span class="svc-dur"><i class="fas fa-clock"></i> {{ svc.estimatedDuration }} min</span>
+    {% endif %}
+  </div>
+  {% empty %}
+  <div class="empty-state" style="grid-column:1/-1">
+    <i class="fas fa-tools"></i>
+    <p>No services available at the moment.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- BOOKING FORM -->
+<form class="bk-form" method="POST" action="{% url 'book_service' %}">
+  {% csrf_token %}
+  <input type="hidden" name="service_id" id="service_id" value=""/>
+  <div class="form-card-title">Booking Details</div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Selected Service</label>
+      <input type="text" id="selected_svc_display" placeholder="Click a service above" readonly
+             style="background:#f0fdf4;color:#16a34a;font-weight:700;cursor:default"/>
+    </div>
+    <div class="form-group">
+      <label>Service Provider</label>
+      <select name="provider_id" required>
+        <option value="">-- Select Provider --</option>
+        {% for p in providers %}
+        <option value="{{ p.providerId }}">{{ p.garageName }} — {{ p.location }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Booking Date</label>
+      <input type="date" name="booking_date" min="{{ today_iso }}" required/>
+    </div>
+    <div class="form-group">
+      <label>Preferred Time</label>
+      <select name="booking_time">
+        <option value="">-- Any Time --</option>
+        <option value="08:00">08:00 AM</option>
+        <option value="09:00">09:00 AM</option>
+        <option value="10:00">10:00 AM</option>
+        <option value="11:00">11:00 AM</option>
+        <option value="12:00">12:00 PM</option>
+        <option value="13:00">01:00 PM</option>
+        <option value="14:00">02:00 PM</option>
+        <option value="15:00">03:00 PM</option>
+        <option value="16:00">04:00 PM</option>
+        <option value="17:00">05:00 PM</option>
+      </select>
+    </div>
+  </div>
+
+  {% if customer_profile %}
+  <div class="form-group">
+    <label>Vehicle</label>
+    <input type="text" value="{{ customer_profile.vehicleNumber }} — {{ customer_profile.vehicleModel }} {{ customer_profile.vehicleYear }}"
+           readonly style="background:#f8fafc;cursor:default"/>
+  </div>
+  {% endif %}
+
+  <div class="form-group">
+    <label>Additional Notes</label>
+    <textarea name="notes" rows="2" placeholder="Any specific issues or requests..."></textarea>
+  </div>
+
+  <div class="form-actions">
+    {% comment %} <button href="{% url 'customer_home' %}" class="btn-secondary">Cancel</button> {% endcomment %}
+    <button type="submit" class="btn-primary">
+      <i class="fas fa-check"></i> Confirm Booking
+    </button>
+  </div>
+</form>
+
+{% block extra_js %}
+<script>
+function selectService(id, name, price) {
+  document.getElementById('service_id').value = id;
+  document.getElementById('selected_svc_display').value = name + ' — ₹' + price.toLocaleString('en-IN');
+  document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+</script>
+{% endblock %}
+{% endblock %}

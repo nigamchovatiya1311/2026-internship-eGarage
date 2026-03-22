@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Garage | {% block page_title %}Dashboard{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/garage/customer/customer.css' %}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo">
+      <div class="logo-icon"><i class="fas fa-wrench"></i></div>
+      <div>
+        <span class="logo-main">E-GARAGE</span>
+        <span class="logo-sub">Customer Portal</span>
+      </div>
+    </div>
+    <button class="sb-close" id="sbClose"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- Profile Card -->
+  <div class="sb-profile">
+    <div class="sb-avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+    <span class="sb-name">{{ user.first_name }} {{ user.last_name }}</span>
+    <span class="sb-email">{{ user.email }}</span>
+  </div>
+
+  <!-- Vehicle Quick Info -->
+  {% if customer_profile %}
+  <div class="sb-vehicle">
+    <div class="sb-veh-icon"><i class="fas fa-car"></i></div>
+    <div>
+      <span class="sb-veh-num">{{ customer_profile.vehicleNumber }}</span>
+      <span class="sb-veh-model">{{ customer_profile.vehicleModel }} {{ customer_profile.vehicleYear }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Navigation -->
+  <nav class="sb-nav">
+    <div class="nav-lbl">Menu</div>
+
+    <a href="{% url 'customer_home' %}" class="nav-item {% if active == 'home' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-house"></i></div>
+      <span>Home</span>
+    </a>
+
+    <a href="{% url 'book_service' %}" class="nav-item {% if active == 'book' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-calendar-plus"></i></div>
+      <span>Book Service</span>
+    </a>
+
+    <a href="{% url 'my_bookings' %}" class="nav-item {% if active == 'bookings' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-calendar-check"></i></div>
+      <span>My Bookings</span>
+      {% if pending_count %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
+    </a>
+
+    <a href="{% url 'service_history' %}" class="nav-item {% if active == 'history' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-history"></i></div>
+      <span>Service History</span>
+    </a>
+
+    <a href="{% url 'my_vehicle' %}" class="nav-item {% if active == 'vehicle' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-car"></i></div>
+      <span>My Vehicle</span>
+    </a>
+
+    <a href="{% url 'my_payments' %}" class="nav-item {% if active == 'payments' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-indian-rupee-sign"></i></div>
+      <span>Payments</span>
+    </a>
+
+    <a href="{% url 'customer_notifications' %}" class="nav-item {% if active == 'notifications' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-bell"></i></div>
+      <span>Notifications</span>
+      {% if unread_notif_count %}<span class="nav-badge new">{{ unread_notif_count }}</span>{% endif %}
+    </a>
+
+    <a href="{% url 'customer_profile' %}" class="nav-item {% if active == 'profile' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-user"></i></div>
+      <span>My Profile</span>
+    </a>
+
+    <div class="nav-lbl">Account</div>
+    <a href="{% url 'customer_logout' %}" class="nav-item logout">
+      <div class="nav-ic"><i class="fas fa-right-from-bracket"></i></div>
+      <span>Logout</span>
+    </a>
+  </nav>
+</aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+
+<!-- ═══════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════ -->
+<main class="main-content">
+
+  <!-- TOP NAV -->
+  <header class="topnav">
+    <div class="topnav-left">
+      <button class="hamburger-btn" id="hamburgerBtn"><i class="fas fa-bars"></i></button>
+      <div class="breadcrumb">
+        <span class="bread-home"><i class="fas fa-house"></i></span>
+        <i class="fas fa-chevron-right bread-sep"></i>
+        <span class="bread-current">{% block breadcrumb %}Dashboard{% endblock %}</span>
+      </div>
+    </div>
+    <div class="topnav-right">
+      <a href="{% url 'customer_notifications' %}" class="topnav-btn">
+        <i class="fas fa-bell"></i>
+        {% if unread_notif_count %}<span class="notif-dot"></span>{% endif %}
+      </a>
+      <div class="topnav-avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <div class="page-content">
+
+    <!-- Django Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}times-circle{% else %}exclamation-circle{% endif %}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+  </div>
+</main>
+
+<script src="{% static 'js/customer/customer.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

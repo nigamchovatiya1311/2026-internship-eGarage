@@ -2,32 +2,379 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up</title>
-    <link rel="stylesheet" href="{% static 'css/signup.css' %}">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Garage | Create Account</title>
+  <link rel="stylesheet" href="{% static 'css/signup.css' %}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 </head>
-<body>
+<body class="register-page">
 
-    <div class="signup-container">
-        <div class="signup-card">
-            <h2>Create Account</h2>
+  <!-- BG BLOBS -->
+  <div class="bg-blob blob1"></div>
+  <div class="bg-blob blob2"></div>
+  <div class="bg-blob blob3"></div>
 
-            <form method="POST">
-                {% csrf_token %}
-                
-                <div class="form-fields">
-                    {{ form.as_p }}
-                </div>
+  <!-- BACK TO HOME -->
+  <a href="{% url 'home' %}" class="back-home">
+    <i class="fas fa-arrow-left"></i> Back to Home
+  </a>
 
-                <button type="submit" class="signup-btn">Sign Up</button>
-            </form>
+  <div class="auth-wrapper">
 
-            <p class="login-link">
-                Already have an account? <a href="{% url 'login' %}">Login</a>
-            </p>
+    <!-- ===== LEFT PANEL ===== -->
+    <div class="auth-left">
+      <div class="auth-left-inner">
+
+        <a href="{% url 'home' %}" class="auth-logo">
+          <div class="auth-logo-icon"><i class="fas fa-wrench"></i></div>
+          <div>
+            <span class="auth-logo-main">E-GARAGE</span>
+            <span class="auth-logo-sub">Auto Service Center</span>
+          </div>
+        </a>
+
+        <div class="auth-illustration">
+          <div class="car-icon-wrap register-car">
+            <i class="fas fa-tools"></i>
+          </div>
+          <h2>Join E-Garage!</h2>
+          <p>Create your free account to book services, track repairs in real-time, and get exclusive offers — all in one place.</p>
         </div>
+
+        <div class="auth-features">
+          <div class="auth-feature">
+            <div class="af-icon"><i class="fas fa-calendar-plus"></i></div>
+            <span>Easy Booking</span>
+          </div>
+          <div class="auth-feature">
+            <div class="af-icon"><i class="fas fa-truck-fast"></i></div>
+            <span>Pick &amp; Drop</span>
+          </div>
+          <div class="auth-feature">
+            <div class="af-icon"><i class="fas fa-receipt"></i></div>
+            <span>Digital Invoices</span>
+          </div>
+          <div class="auth-feature">
+            <div class="af-icon"><i class="fas fa-star"></i></div>
+            <span>Exclusive Offers</span>
+          </div>
+        </div>
+
+      </div>
     </div>
 
+    <!-- ===== RIGHT PANEL ===== -->
+    <div class="auth-right">
+      <div class="auth-form-box">
+
+        <div class="form-header">
+          <div class="form-header-icon register-icon">
+            <i class="fas fa-user-plus"></i>
+          </div>
+          <h2>Create Account</h2>
+          <p>Register to book &amp; manage your car services</p>
+        </div>
+
+        <!-- Django server errors -->
+        <div class="django-messages">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }}">
+                <i class="fas fa-exclamation-circle"></i> {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-error">
+              <i class="fas fa-exclamation-circle"></i>
+              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <form class="auth-form" method="POST" action="{% url 'signup' %}" id="registerForm" novalidate>
+          {% csrf_token %}
+
+          <!-- ── Row 1: First Name + Last Name ── -->
+          <div class="form-row">
+
+            <div class="form-group {% if form.first_name.errors %}has-error{% endif %}">
+              <label for="{{ form.first_name.id_for_label }}">
+                <i class="fas fa-user"></i> First Name
+              </label>
+              <input
+                type="text"
+                id="{{ form.first_name.id_for_label }}"
+                name="first_name"
+                value="{{ form.first_name.value|default:'' }}"
+                placeholder="John"
+                autocomplete="given-name"
+                required
+              />
+              {% if form.first_name.errors %}
+                <span class="field-error">
+                  <i class="fas fa-exclamation-circle"></i>
+                  {{ form.first_name.errors.0 }}
+                </span>
+              {% endif %}
+            </div>
+
+            <div class="form-group {% if form.last_name.errors %}has-error{% endif %}">
+              <label for="{{ form.last_name.id_for_label }}">
+                <i class="fas fa-user"></i> Last Name
+              </label>
+              <input
+                type="text"
+                id="{{ form.last_name.id_for_label }}"
+                name="last_name"
+                value="{{ form.last_name.value|default:'' }}"
+                placeholder="Doe"
+                autocomplete="family-name"
+                required
+              />
+              {% if form.last_name.errors %}
+                <span class="field-error">
+                  <i class="fas fa-exclamation-circle"></i>
+                  {{ form.last_name.errors.0 }}
+                </span>
+              {% endif %}
+            </div>
+
+          </div>
+
+          <!-- ── Email ── -->
+          <div class="form-group {% if form.email.errors %}has-error{% endif %}">
+            <label for="{{ form.email.id_for_label }}">
+              <i class="fas fa-envelope"></i> Email Address
+            </label>
+            <input
+              type="email"
+              id="{{ form.email.id_for_label }}"
+              name="email"
+              value="{{ form.email.value|default:'' }}"
+              placeholder="you@example.com"
+              autocomplete="email"
+              required
+            />
+            {% if form.email.errors %}
+              <span class="field-error">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ form.email.errors.0 }}
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- ── Row 2: Mobile + Gender ── -->
+          <div class="form-row">
+
+            <div class="form-group {% if form.mobile.errors %}has-error{% endif %}">
+              <label for="{{ form.mobile.id_for_label }}">
+                <i class="fas fa-mobile-screen"></i> Mobile Number
+              </label>
+              <input
+                type="tel"
+                id="{{ form.mobile.id_for_label }}"
+                name="mobile"
+                value="{{ form.mobile.value|default:'' }}"
+                placeholder="+91 98765 43210"
+                autocomplete="tel"
+                required
+              />
+              {% if form.mobile.errors %}
+                <span class="field-error">
+                  <i class="fas fa-exclamation-circle"></i>
+                  {{ form.mobile.errors.0 }}
+                </span>
+              {% endif %}
+            </div>
+
+            <div class="form-group {% if form.gender.errors %}has-error{% endif %}">
+              <label for="{{ form.gender.id_for_label }}">
+                <i class="fas fa-venus-mars"></i> Gender
+              </label>
+              <div class="select-wrap">
+                <select
+                  id="{{ form.gender.id_for_label }}"
+                  name="gender"
+                  required
+                >
+                  <option value="">Select gender</option>
+                  <option value="male"   {% if form.gender.value == 'male'   %}selected{% endif %}>Male</option>
+                  <option value="female" {% if form.gender.value == 'female' %}selected{% endif %}>Female</option>
+                  <option value="other"  {% if form.gender.value == 'other'  %}selected{% endif %}>Other</option>
+                </select>
+                <i class="fas fa-chevron-down select-arrow"></i>
+              </div>
+              {% if form.gender.errors %}
+                <span class="field-error">
+                  <i class="fas fa-exclamation-circle"></i>
+                  {{ form.gender.errors.0 }}
+                </span>
+              {% endif %}
+            </div>
+
+          </div>
+
+          <!-- ── Role ── -->
+          <div class="form-group {% if form.role.errors %}has-error{% endif %}">
+            <label for="{{ form.role.id_for_label }}">
+              <i class="fas fa-user-tag"></i> Role
+            </label>
+            <div class="select-wrap">
+              <select
+                id="{{ form.role.id_for_label }}"
+                name="role"
+                required
+              >
+                <option value="">Select your role</option>
+                <option value="customer"         {% if form.role.value == 'customer'         %}selected{% endif %}>Customer</option>
+                <option value="service_provider" {% if form.role.value == 'service_provider' %}selected{% endif %}>Service Provider</option>
+                <option value="admin"            {% if form.role.value == 'admin'            %}selected{% endif %}>Admin</option>
+              </select>
+              <i class="fas fa-chevron-down select-arrow"></i>
+            </div>
+            {% if form.role.errors %}
+              <span class="field-error">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ form.role.errors.0 }}
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- ── Password ── -->
+          <div class="form-group {% if form.password1.errors %}has-error{% endif %}">
+            <label for="{{ form.password1.id_for_label }}">
+              <i class="fas fa-lock"></i> Password
+            </label>
+            <div class="input-icon-wrap">
+              <input
+                type="password"
+                id="{{ form.password1.id_for_label }}"
+                name="password1"
+                placeholder="Minimum 8 characters"
+                autocomplete="new-password"
+                required
+              />
+              <button type="button" class="toggle-pw" onclick="togglePw('{{ form.password1.id_for_label }}', this)" tabindex="-1">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            <!-- Live strength bar only — no rules text -->
+            <div class="pw-strength">
+              <div class="strength-bar">
+                <div class="strength-fill" id="strengthFill"></div>
+              </div>
+              <span id="strengthLabel">Enter password</span>
+            </div>
+            {% if form.password1.errors %}
+              <span class="field-error">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ form.password1.errors.0 }}
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- ── Confirm Password ── -->
+          <div class="form-group {% if form.password2.errors %}has-error{% endif %}">
+            <label for="{{ form.password2.id_for_label }}">
+              <i class="fas fa-lock"></i> Password Confirmation
+            </label>
+            <div class="input-icon-wrap">
+              <input
+                type="password"
+                id="{{ form.password2.id_for_label }}"
+                name="password2"
+                placeholder="Re-enter your password"
+                autocomplete="new-password"
+                required
+              />
+              <button type="button" class="toggle-pw" onclick="togglePw('{{ form.password2.id_for_label }}', this)" tabindex="-1">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            <span class="confirm-hint">
+              <i class="fas fa-info-circle"></i>
+              Enter the same password as before, for verification.
+            </span>
+            {% if form.password2.errors %}
+              <span class="field-error">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ form.password2.errors.0 }}
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- ── Submit ── -->
+          <button type="submit" class="btn-submit" id="registerSubmit">
+            <span>Sign Up</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+
+        </form>
+
+        <p class="switch-text">
+          Already have an account?
+          <a href="{% url 'login' %}" class="switch-link">Login</a>
+        </p>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ── PASSWORD SHOW / HIDE ── */
+    function togglePw(fieldId, btn) {
+      var field = document.getElementById(fieldId);
+      var icon  = btn.querySelector('i');
+      if (!field) return;
+      if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        field.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+
+    /* ── PASSWORD STRENGTH METER ── */
+    var pwField = document.getElementById('id_password1');
+    if (pwField) {
+      pwField.addEventListener('input', function () {
+        var pw     = this.value;
+        var fill   = document.getElementById('strengthFill');
+        var label  = document.getElementById('strengthLabel');
+        if (!fill || !label) return;
+
+        var score = 0;
+        if (pw.length >= 8)               score++;
+        if (/[A-Z]/.test(pw))             score++;
+        if (/[0-9]/.test(pw))             score++;
+        if (/[^a-zA-Z0-9]/.test(pw))      score++;
+
+        var levels = ['', 'weak', 'fair', 'good', 'strong'];
+        var labels = ['Enter password', 'Weak', 'Fair', 'Good', 'Strong'];
+
+        fill.className    = 'strength-fill ' + (levels[score] || '');
+        label.textContent = labels[score]    || 'Enter password';
+      });
+    }
+
+    /* ── SUBMIT LOADING STATE ── */
+    var regForm = document.getElementById('registerForm');
+    if (regForm) {
+      regForm.addEventListener('submit', function () {
+        var btn = document.getElementById('registerSubmit');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>&nbsp; Creating account...';
+        }
+      });
+    }
+  </script>
 </body>
 </html>

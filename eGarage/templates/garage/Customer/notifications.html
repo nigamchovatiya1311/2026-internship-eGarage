@@ -1,0 +1,94 @@
+{% extends "garage/Customer/base.html" %}
+{% load static %}
+
+{% block page_title %}Notifications{% endblock %}
+{% block breadcrumb %}Notifications{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">Notifications</h1>
+    <p class="section-sub">Updates about your bookings and payments.</p>
+  </div>
+  {% if total_unread %}
+  <a href="{% url 'mark_all_notif_read' %}" class="btn-primary">
+    <i class="fas fa-check-double"></i> Mark All Read
+  </a>
+  {% endif %}
+</div>
+
+<!-- NOTIFICATION STATS -->
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px">
+  <div class="stat-card" style="--accent:#e8560a">
+    <div class="stat-icon"><i class="fas fa-bell"></i></div>
+    <div><span class="stat-label">Total</span><span class="stat-value">{{ total_sent }}</span></div>
+  </div>
+  <div class="stat-card" style="--accent:#3b82f6">
+    <div class="stat-icon" style="background:#eff6ff;color:#3b82f6"><i class="fas fa-envelope-open"></i></div>
+    <div><span class="stat-label">Read</span><span class="stat-value">{{ total_read }}</span></div>
+  </div>
+  <div class="stat-card" style="--accent:#f9a825">
+    <div class="stat-icon" style="background:#fffbeb;color:#f9a825"><i class="fas fa-envelope"></i></div>
+    <div><span class="stat-label">Unread</span><span class="stat-value">{{ total_unread }}</span></div>
+  </div>
+</div>
+
+<!-- NOTIFICATION LIST -->
+<div class="notif-list">
+  {% for notif in notifications %}
+  <div class="notif-item {% if not notif.isRead %}unread{% endif %}">
+
+    <div class="notif-icon {% if notif.notificationType == 'booking_confirmed' %}booking
+                           {% elif notif.notificationType == 'payment_received' %}payment
+                           {% elif notif.notificationType == 'service_completed' %}service
+                           {% elif notif.notificationType == 'booking_cancelled' %}cancel
+                           {% else %}general{% endif %}">
+      <i class="fas fa-{% if notif.notificationType == 'booking_confirmed' %}calendar-check
+                        {% elif notif.notificationType == 'payment_received' %}indian-rupee-sign
+                        {% elif notif.notificationType == 'service_completed' %}screwdriver-wrench
+                        {% elif notif.notificationType == 'booking_cancelled' %}times-circle
+                        {% else %}info-circle{% endif %}"></i>
+    </div>
+
+    <div class="notif-body">
+      <div class="notif-title-row">
+        <strong>{{ notif.title }}</strong>
+        <span class="badge {% if not notif.isRead %}warning{% else %}{% endif %}"
+              style="font-size:0.62rem">
+          {{ notif.get_notificationType_display }}
+        </span>
+        {% if not notif.isRead %}
+        <a href="{% url 'mark_notif_read' notif.notificationId %}" class="btn-read-sm">Mark Read</a>
+        {% endif %}
+      </div>
+      <p class="notif-msg">{{ notif.message }}</p>
+      <div class="notif-meta">
+        <span><i class="fas fa-clock"></i> {{ notif.createdAt|timesince }} ago</span>
+        {% if not notif.isRead %}<span class="unread-label">● Unread</span>{% endif %}
+      </div>
+    </div>
+
+  </div>
+  {% empty %}
+  <div class="empty-state">
+    <i class="fas fa-bell-slash"></i>
+    <p>No notifications yet.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- PAGINATION -->
+{% if notifications.has_other_pages %}
+<div class="pagination">
+  {% if notifications.has_previous %}
+  <a href="?page={{ notifications.previous_page_number }}" class="page-btn"><i class="fas fa-chevron-left"></i></a>
+  {% endif %}
+  {% for num in notifications.paginator.page_range %}
+  <a href="?page={{ num }}" class="page-btn {% if notifications.number == num %}active{% endif %}">{{ num }}</a>
+  {% endfor %}
+  {% if notifications.has_next %}
+  <a href="?page={{ notifications.next_page_number }}" class="page-btn"><i class="fas fa-chevron-right"></i></a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

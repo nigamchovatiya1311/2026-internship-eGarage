@@ -1,0 +1,63 @@
+{% extends "garage/Provider/base.html" %}
+{% block page_title %}Reviews{% endblock %}
+{% block breadcrumb %}Reviews{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">Reviews</h1>
+    <p class="section-sub">Customer feedback for {{ provider.garageName }}.</p>
+  </div>
+</div>
+
+<div class="stats-grid four-col">
+  <div class="mini-stat" style="--c:#f9a825"><i class="fas fa-star"></i><div><strong>{{ avg_rating }}</strong><span>Avg Rating</span></div></div>
+  <div class="mini-stat" style="--c:#16a34a"><i class="fas fa-comments"></i><div><strong>{{ total_reviews }}</strong><span>Total Reviews</span></div></div>
+  <div class="mini-stat" style="--c:#3b82f6"><i class="fas fa-face-smile"></i><div><strong>{{ positive_pct }}%</strong><span>Positive</span></div></div>
+  <div class="mini-stat" style="--c:#dc2626"><i class="fas fa-flag"></i><div><strong>{{ flagged_count }}</strong><span>Flagged</span></div></div>
+</div>
+
+<div class="review-list">
+  {% for review in reviews %}
+  <div class="review-card {% if review.rating <= 2 %}flagged{% endif %}">
+    <div class="review-header">
+      <div class="review-user">
+        <div class="u-avatar">{{ review.customer.user.first_name|first|upper }}</div>
+        <div>
+          <strong>{{ review.customer.user.get_full_name }}</strong>
+          <span>{{ review.booking.service.serviceName }} · {{ review.createdAt|date:"d M Y" }}</span>
+        </div>
+      </div>
+      <div class="review-stars">
+        {% for i in "12345" %}
+          {% if forloop.counter <= review.rating %}
+            <i class="fas fa-star" style="color:#f9a825;font-size:0.85rem"></i>
+          {% else %}
+            <i class="far fa-star" style="color:#d1d5db;font-size:0.85rem"></i>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% if review.comment %}
+    <p class="review-comment">"{{ review.comment }}"</p>
+    {% endif %}
+    <div class="review-footer">
+      <span class="review-booking">Booking #BK{{ review.booking.bookingId }}</span>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state">
+    <i class="fas fa-star"></i>
+    <p>No reviews yet. Complete bookings to start receiving feedback.</p>
+  </div>
+  {% endfor %}
+</div>
+
+{% if reviews.has_other_pages %}
+<div class="pagination" style="margin-top:16px">
+  {% if reviews.has_previous %}<a href="?page={{ reviews.previous_page_number }}" class="page-btn"><i class="fas fa-chevron-left"></i></a>{% endif %}
+  {% for num in reviews.paginator.page_range %}<a href="?page={{ num }}" class="page-btn {% if reviews.number == num %}active{% endif %}">{{ num }}</a>{% endfor %}
+  {% if reviews.has_next %}<a href="?page={{ reviews.next_page_number }}" class="page-btn"><i class="fas fa-chevron-right"></i></a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -6,12 +6,12 @@ from .models import User
 class UserSignUpForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ['email', 'role', 'password1', 'password2']
+        fields = ['first_name', 'last_name', 'mobile', 'gender', 'email', 'role', 'password1', 'password2']
         
-        widgets = {
-            'password1': forms.PasswordInput(), # Use PasswordInput widget for password fields
-            'password2': forms.PasswordInput(),
-        }
+        # widgets = {
+        #     'password1': forms.PasswordInput(), # Use PasswordInput widget for password fields
+        #     'password2': forms.PasswordInput(),
+        # }
 
 
 class UserLoginForm(forms.Form):

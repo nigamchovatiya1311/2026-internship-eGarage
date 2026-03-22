@@ -21,8 +21,17 @@ class UserManager(BaseUserManager):
             raise ValueError('Superuser must have is_admin=True.')
 
         return self.create_user(email, password, **extra_fields)
+    
 
-# Create your models here.
+
+# _______________________________________
+
+# user
+
+# _______________________________________
+
+
+
 class User(AbstractBaseUser):
 
     def has_perm(self, perm, obj=None):
@@ -37,12 +46,36 @@ class User(AbstractBaseUser):
         ('customer','customer'),
         ('service_provider','service_provider'),
     )
+
+    first_name = models.CharField(max_length=50, blank=True, default='')
+    last_name  = models.CharField(max_length=50, blank=True, default='')
+    mobile     = models.CharField(max_length=15, blank=True, default='')
+    gender     = models.CharField(
+        max_length=10,
+        choices =(
+            ('male','Male'),
+            ('female','Female'),
+            ('other','Other'),
+        ),
+        blank=True,
+        default='',
+    )
+
+
+    # STATUS_CHOICE = (
+    #     ('inactive', 'Inactive'),
+    #     ('active', 'Active'),
+    #     ('blocked', 'Blocked'),
+    #     ('deleted', 'Deleted'),
+    # )
+
     role = models.CharField(max_length=20,choices=role_choice,default='customer')
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    date_joined = models.DateTimeField(auto_now_add=True)
     
     
     objects = UserManager()

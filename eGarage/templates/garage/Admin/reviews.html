@@ -1,0 +1,46 @@
+{% extends "garage/Admin/base.html" %}
+{% block page_title %}Reviews{% endblock %}
+{% block breadcrumb %}Reviews{% endblock %}
+{% block content %}
+<section class="dash-section active" id="sec-reviews">
+  <div class="section-header">
+    <div><h1 class="section-title">Reviews</h1>
+    <p class="section-sub">Customer reviews for completed bookings.</p></div>
+  </div>
+  <div class="stats-grid four-col">
+    <div class="mini-stat" style="--c:#f9a825"><i class="fas fa-star"></i><div><strong>{{ avg_rating }}</strong><span>Avg Rating</span></div></div>
+    <div class="mini-stat" style="--c:#16a34a"><i class="fas fa-face-smile"></i><div><strong>{{ positive_pct }}%</strong><span>Positive</span></div></div>
+    <div class="mini-stat" style="--c:#1e3a5f"><i class="fas fa-comments"></i><div><strong>{{ total_reviews }}</strong><span>Total Reviews</span></div></div>
+    <div class="mini-stat" style="--c:#dc2626"><i class="fas fa-face-frown"></i><div><strong>{{ flagged_count }}</strong><span>Flagged</span></div></div>
+  </div>
+  <div class="review-list">
+    {% for review in reviews %}
+    <div class="review-card {% if review.is_flagged %}flagged{% endif %}">
+      <div class="review-header">
+        <div class="review-user">
+          <div class="u-avatar" style="background:#e8560a;width:36px;height:36px">{{ review.user.first_name|first }}</div>
+          <div><strong>{{ review.user.get_full_name }}</strong><span>{{ review.service.name }} · {{ review.provider.garage_name }}</span></div>
+        </div>
+        <div class="review-meta">
+          <span class="stars">{% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+          <span class="review-date">{{ review.created_at|date:"d M Y" }}</span>
+        </div>
+      </div>
+      <p class="review-comment">"{{ review.comment }}"</p>
+      <div class="review-footer">
+        <span class="review-booking">Booking #BK{{ review.booking.id }}</span>
+        {% if review.is_flagged %}
+          <span class="badge danger" style="font-size:0.68rem">Flagged</span>
+          <button class="btn-sm resolve" onclick="showToast('Review restored','success')"><i class="fas fa-check"></i> Restore</button>
+        {% else %}
+          <button class="btn-sm" onclick="showToast('Review flagged','warning')"><i class="fas fa-flag"></i> Flag</button>
+        {% endif %}
+        <button class="btn-sm del" onclick="confirmDelete('review','this review', {{ review.id }})"><i class="fas fa-trash"></i> Delete</button>
+      </div>
+    </div>
+    {% empty %}
+    <p style="color:var(--text-muted);text-align:center;padding:2rem">No reviews yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

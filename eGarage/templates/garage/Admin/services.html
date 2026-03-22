@@ -1,0 +1,396 @@
+{% extends "garage/Admin/base.html" %}
+{% block page_title %}Services{% endblock %}
+{% block breadcrumb %}Services{% endblock %}
+{% block content %}
+<section class="dash-section active" id="sec-services">
+
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">Services</h1>
+      <p class="section-sub">All services offered by providers.</p>
+    </div>
+    <button class="btn-primary-sm" onclick="openServiceModal()">
+      <i class="fas fa-plus"></i> Add Service
+    </button>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div style="padding:10px 16px;border-radius:8px;margin-bottom:12px;font-size:13px;
+                  {% if 'error' in msg.tags or 'warning' in msg.tags %}
+                    background:#fef3c7;color:#92400e;border:1px solid #fcd34d;
+                  {% else %}
+                    background:#ecfdf5;color:#166534;border:1px solid #bbf7d0;
+                  {% endif %}">
+        <i class="fas fa-{% if 'error' in msg.tags or 'warning' in msg.tags %}exclamation-triangle{% else %}check-circle{% endif %}"></i>
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- FILTER BAR -->
+  <form method="GET" action="{% url 'admin_services' %}" id="filterForm">
+    <div class="filter-bar">
+      <div class="filter-right">
+        <div class="search-input">
+          <i class="fas fa-search"></i>
+          <input type="text" name="q" value="{{ request.GET.q }}"
+                 placeholder="Search services..."
+                 oninput="debounceSearch(this)"/>
+        </div>
+
+        <select class="filter-select" name="provider" onchange="document.getElementById('filterForm').submit()">
+          <option value="">All Providers</option>
+          {% for p in provider_list %}
+            <option value="{{ p.providerId }}"
+              {% if request.GET.provider == p.providerId|stringformat:"s" %}selected{% endif %}>
+              {{ p.garage_name }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <select class="filter-select" name="status" onchange="document.getElementById('filterForm').submit()">
+          <option value="">All Status</option>
+          <option value="available"   {% if request.GET.status == 'available' %}selected{% endif %}>Available</option>
+          <option value="unavailable" {% if request.GET.status == 'unavailable' %}selected{% endif %}>Unavailable</option>
+        </select>
+      </div>
+    </div>
+  </form>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-wrap">
+      <table class="data-table" id="servicesTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Service Name</th>
+            <th>Provider</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Duration</th>
+            <th>Available</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for svc in services %}
+          <tr>
+            <td>#SVC{{ svc.id|stringformat:"02d" }}</td>
+            <td><strong>{{ svc.name }}</strong></td>
+            <td>{{ svc.provider.garage_name }}</td>
+            <td>{{ svc.description|truncatewords:8|default:"—" }}</td>
+            <td>₹{{ svc.price }}</td>
+            <td>{{ svc.duration_minutes }} min</td>
+            <td>
+              {% if svc.is_available %}
+                <span class="badge success">Yes</span>
+              {% else %}
+                <span class="badge danger">No</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="act-btn view"
+                  onclick="openServiceModal(
+                    '{{ svc.id }}',
+                    '{{ svc.name|escapejs }}',
+                    '{{ svc.description|escapejs }}',
+                    '{{ svc.price }}',
+                    '{{ svc.duration_minutes }}',
+                    '{{ svc.provider.providerId }}'
+                  )" title="Edit">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button class="act-btn del"
+                  onclick="confirmDelete('service','{{ svc.name|escapejs }}', {{ svc.id }})"
+                  title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" style="text-align:center;color:var(--text-muted);padding:40px 20px;">
+              <i class="fas fa-tools" style="font-size:28px;opacity:0.3;display:block;margin-bottom:8px;"></i>
+              No services found.
+              {% if request.GET.q or request.GET.provider or request.GET.status %}
+                <br><a href="{% url 'admin_services' %}" style="font-size:12px;color:var(--primary);">Clear filters</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="table-info">Showing {{ services|length }} service{{ services|length|pluralize }}</span>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══ ADD / EDIT SERVICE MODAL ════════════════════════════════════════════ -->
+<style>
+  #serviceModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.55);
+  }
+  #serviceModal.is-open {
+    display: block;
+  }
+  #serviceModalBox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px 30px;
+    width: 90%;
+    max-width: 520px;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+  }
+</style>
+
+<div id="serviceModal">
+  <div id="serviceModalBox">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-tag" style="color:#e8560a;font-size:16px;"></i>
+        <h3 id="modalHeading" style="margin:0;font-size:16px;font-weight:700;letter-spacing:0.5px;">ADD SERVICE</h3>
+      </div>
+      <button type="button" onclick="closeServiceModal()"
+        style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1;padding:0;">
+        &times;
+      </button>
+    </div>
+
+    <form method="POST" action="{% url 'admin_service_save' %}" id="serviceForm">
+      {% csrf_token %}
+      <input type="hidden" name="service_id" id="modalServiceId" value=""/>
+
+      <!-- Service Name -->
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;letter-spacing:0.5px;">
+          SERVICE NAME
+        </label>
+        <input type="text" name="name" id="modalName"
+               placeholder="e.g. Oil Change & Lube" required
+               style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f8fafc;outline:none;"/>
+      </div>
+
+      <!-- Provider dropdown -->
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;letter-spacing:0.5px;">
+          PROVIDER
+        </label>
+        <select name="provider_id" id="modalProviderId" required
+          style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f8fafc;">
+          <option value="">— Select provider —</option>
+          {% for p in provider_list %}
+            <option value="{{ p.providerId }}">{{ p.garage_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Description -->
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;letter-spacing:0.5px;">
+          DESCRIPTION
+        </label>
+        <textarea name="description" id="modalDesc" rows="3"
+                  placeholder="Short description..."
+                  style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;background:#f8fafc;"></textarea>
+      </div>
+
+      <!-- Price + Duration -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;letter-spacing:0.5px;">
+            PRICE (₹)
+          </label>
+          <input type="number" name="price" id="modalPrice"
+                 placeholder="1999" min="0" required
+                 style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f8fafc;"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;letter-spacing:0.5px;">
+            DURATION (MINS)
+          </label>
+          <input type="number" name="duration" id="modalDuration"
+                 placeholder="45" min="1"
+                 style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f8fafc;"/>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e5e7eb;padding-top:18px;">
+        <button type="button" onclick="closeServiceModal()"
+          style="padding:9px 22px;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;font-weight:500;color:#374151;">
+          Cancel
+        </button>
+        <button type="submit"
+          style="padding:9px 22px;background:#e8560a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+          <i class="fas fa-save"></i> Save Service
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- ══ DELETE CONFIRMATION MODAL ══════════════════════════════════════════ -->
+<style>
+  #deleteModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.55);
+  }
+  #deleteModal.is-open { display: block; }
+  #deleteModalBox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px 30px;
+    width: 90%;
+    max-width: 440px;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+  }
+</style>
+
+<div id="deleteModal">
+  <div id="deleteModalBox">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-trash" style="color:#dc2626;font-size:16px;"></i>
+        <h3 style="margin:0;font-size:16px;font-weight:700;letter-spacing:0.5px;color:#111827;">
+          CONFIRM DELETE
+        </h3>
+      </div>
+      <button type="button" onclick="closeDeleteModal()"
+        style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1;padding:0;">
+        &times;
+      </button>
+    </div>
+
+    <!-- Body -->
+    <p style="margin:0 0 6px;font-size:14px;color:#374151;">
+      Are you sure you want to delete <strong id="deleteItemName"></strong>?
+    </p>
+    <p style="margin:0 0 24px;font-size:13px;color:#dc2626;">
+      This action cannot be undone.
+    </p>
+
+    <!-- Hidden POST form — posts to generic_delete with redirect back to this page -->
+    <form method="POST" action="{% url 'generic_delete' %}" id="deleteForm">
+      {% csrf_token %}
+      <input type="hidden" name="model_type"  id="deleteModelType"  value=""/>
+      <input type="hidden" name="object_id"   id="deleteObjectId"   value=""/>
+      <input type="hidden" name="redirect_to" value="admin_services"/>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;
+                  border-top:1px solid #e5e7eb;padding-top:18px;">
+        <button type="button" onclick="closeDeleteModal()"
+          style="padding:9px 22px;border:1.5px solid #e5e7eb;border-radius:8px;
+                 background:#fff;font-size:13px;cursor:pointer;font-weight:500;color:#374151;">
+          Cancel
+        </button>
+        <button type="submit"
+          style="padding:9px 22px;background:#dc2626;color:#fff;border:none;
+                 border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+/* ── Add / Edit modal ───────────────────────────────────── */
+function openServiceModal(id, name, desc, price, duration, providerId) {
+  document.getElementById('modalServiceId').value  = '';
+  document.getElementById('modalName').value       = '';
+  document.getElementById('modalDesc').value       = '';
+  document.getElementById('modalPrice').value      = '';
+  document.getElementById('modalDuration').value   = '';
+  document.getElementById('modalProviderId').value = '';
+
+  if (id) {
+    document.getElementById('modalHeading').textContent  = 'EDIT SERVICE';
+    document.getElementById('modalServiceId').value      = id;
+    document.getElementById('modalName').value           = name       || '';
+    document.getElementById('modalDesc').value           = desc       || '';
+    document.getElementById('modalPrice').value          = price      || '';
+    document.getElementById('modalDuration').value       = duration   || '';
+    document.getElementById('modalProviderId').value     = providerId || '';
+  } else {
+    document.getElementById('modalHeading').textContent  = 'ADD SERVICE';
+  }
+
+  document.getElementById('serviceModal').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeServiceModal() {
+  document.getElementById('serviceModal').classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('serviceModal').addEventListener('click', function(e) {
+  if (e.target === this) closeServiceModal();
+});
+
+/* ── Delete modal — overrides base confirmDelete for this page ── */
+function confirmDelete(modelType, name, objectId) {
+  document.getElementById('deleteItemName').textContent = name;
+  document.getElementById('deleteModelType').value      = modelType;
+  document.getElementById('deleteObjectId').value       = objectId;
+  document.getElementById('deleteModal').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDeleteModal();
+});
+
+/* ── Escape closes whichever modal is open ──────────────── */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeServiceModal();
+    closeDeleteModal();
+  }
+});
+
+/* ── Debounced filter search ────────────────────────────── */
+var _searchTimer;
+function debounceSearch(inp) {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(function() {
+    document.getElementById('filterForm').submit();
+  }, 600);
+}
+</script>
+{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,264 @@
+{% extends "garage/Admin/base.html" %}
+
+{% block page_title %}Manage Users{% endblock %}
+{% block breadcrumb %}Manage Users{% endblock %}
+
+{% block content %}
+<section class="dash-section active" id="sec-users">
+
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">Manage Users</h1>
+      <p class="section-sub">All registered users — customers and service providers.</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <div class="filter-tabs">
+      <button class="ftab active" onclick="filterTab(this,'all','usersTable')">All</button>
+      <button class="ftab" onclick="filterTab(this,'customer','usersTable')">Customers</button>
+      <button class="ftab" onclick="filterTab(this,'service_provider','usersTable')">Providers</button>
+      <button class="ftab" onclick="filterByStatus(this,'active','usersTable')">Active</button>
+      <button class="ftab" onclick="filterByStatus(this,'blocked','usersTable')">Blocked</button>
+    </div>
+    <div class="filter-right">
+      <div class="search-input">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search users..." oninput="searchTable(this,'usersTable')"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-wrap">
+      <table class="data-table" id="usersTable">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"/></th>
+            <th>Name</th><th>Email</th><th>Phone</th>
+            <th>Role</th><th>Gender</th><th>Status</th><th>Joined</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr data-role="{{ user.role }}" data-status="{% if user.is_active %}active{% else %}blocked{% endif %}">
+            <td><input type="checkbox" class="row-check"/></td>
+            <td>
+              <div class="user-cell">
+                <div class="u-avatar" style="background:{{ user.avatar_color }}">{{ user.first_name|first|upper }}</div>
+                <span>{{ user.get_full_name|default:user.email }}</span>
+              </div>
+            </td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.mobile|default:"—" }}</td>
+            <td>
+              {% if user.role == 'service_provider' %}
+                <span class="role-tag provider">Provider</span>
+              {% else %}
+                <span class="role-tag customer">Customer</span>
+              {% endif %}
+            </td>
+            <td>{{ user.gender|default:"—"|capfirst }}</td>
+            <td>
+              {% if user.is_active %}
+                <span class="badge success">Active</span>
+              {% else %}
+                <span class="badge danger">Blocked</span>
+              {% endif %}
+            </td>
+            <td>{{ user.date_joined|date:"d M, Y" }}</td>
+            <td>
+              <div class="action-btns">
+
+                <!-- View -->
+                <button class="act-btn view" title="View"
+                  onclick="showUserModal(
+                    '{{ user.get_full_name|default:user.email|escapejs }}',
+                    '{{ user.email|escapejs }}',
+                    '{{ user.role|escapejs }}',
+                    '{% if user.is_active %}Active{% else %}Blocked{% endif %}',
+                    '{{ user.mobile|default:"—"|escapejs }}',
+                    '{{ user.date_joined|date:"d M, Y"|escapejs }}',
+                    '{{ user.gender|default:"—"|escapejs }}'
+                  )">
+                  <i class="fas fa-eye"></i>
+                </button>
+
+                <!-- Block / Unblock -->
+                {% if user.is_active %}
+                  <button class="act-btn block" title="Block"
+                    onclick="blockUserAjax(this, {{ user.id }})">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                {% else %}
+                  <button class="act-btn unblock" title="Unblock"
+                    onclick="unblockUserAjax(this, {{ user.id }})">
+                    <i class="fas fa-unlock"></i>
+                  </button>
+                {% endif %}
+
+                <!-- Delete — opens a small per-user confirm modal -->
+                <button class="act-btn del" title="Delete"
+                  onclick="openDeleteModal('{{ user.id }}','{{ user.get_full_name|default:user.email|escapejs }}')">
+                  <i class="fas fa-trash"></i>
+                </button>
+
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" style="text-align:center;color:var(--text-muted)">No users found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="table-footer">
+      <span class="table-info">Showing {{ users|length }} of {{ total_users }} users</span>
+      <div class="pagination">
+        {% if users.has_previous %}
+          <a href="?page={{ users.previous_page_number }}" class="page-btn"><i class="fas fa-chevron-left"></i></a>
+        {% endif %}
+        {% for num in users.paginator.page_range %}
+          <a href="?page={{ num }}" class="page-btn {% if users.number == num %}active{% endif %}">{{ num }}</a>
+        {% endfor %}
+        {% if users.has_next %}
+          <a href="?page={{ users.next_page_number }}" class="page-btn"><i class="fas fa-chevron-right"></i></a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ── Per-user delete confirm modal (completely independent of admin_dashboard.js) ── -->
+<div class="modal-overlay" id="userDeleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div class="modal modal-sm" style="background:#fff;border-radius:12px;max-width:420px;width:90%;padding:0;overflow:hidden;">
+    <div class="modal-header danger-header" style="padding:16px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;font-size:1rem;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-trash" style="color:#dc2626;"></i> Confirm Delete
+      </h3>
+      <button onclick="closeDeleteModal()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#6b7280;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <p id="userDeleteMsg" style="margin:0;font-size:0.95rem;color:#374151;line-height:1.6;"></p>
+    </div>
+    <div class="modal-footer" style="padding:14px 20px;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;gap:10px;">
+      <button class="btn-modal-secondary" onclick="closeDeleteModal()">Cancel</button>
+      <!-- This form posts directly to your generic_delete view -->
+      <form id="userDeleteForm" method="POST" action="{% url 'generic_delete' %}" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="model_type"  value="user"/>
+        <input type="hidden" name="object_id"   id="userDeleteId" value=""/>
+        <input type="hidden" name="redirect_to" value="{% url 'admin_users' %}"/>
+        <button type="submit" class="btn-modal-danger" style="background:#dc2626;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:600;">
+          Delete
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ── Select all checkboxes ── */
+function toggleAll(cb) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+}
+
+/* ── CSRF helper ── */
+function getCookie(name) {
+  let value = null;
+  if (document.cookie) {
+    document.cookie.split(';').forEach(cookie => {
+      const c = cookie.trim();
+      if (c.startsWith(name + '=')) value = decodeURIComponent(c.slice(name.length + 1));
+    });
+  }
+  return value;
+}
+
+/* ── Delete modal (own implementation, no conflict with admin_dashboard.js) ── */
+function openDeleteModal(userId, name) {
+  document.getElementById('userDeleteId').value = userId;
+  document.getElementById('userDeleteMsg').innerHTML =
+    'Are you sure you want to delete <strong>' + name + '</strong>?<br/>' +
+    '<span style="color:#dc2626;font-size:0.82rem">This action cannot be undone.</span>';
+  const modal = document.getElementById('userDeleteModal');
+  modal.style.display = 'flex';
+}
+
+function closeDeleteModal() {
+  document.getElementById('userDeleteModal').style.display = 'none';
+}
+
+// Close on overlay click
+document.getElementById('userDeleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDeleteModal();
+});
+
+// filter blocked user and unblock user diffrent table show
+function filterByStatus(btn, status, tableId) {
+  // Deactivate all tabs
+  btn.closest('.filter-tabs').querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const table = document.getElementById(tableId);
+  if (!table) return;
+
+  table.querySelectorAll('tbody tr').forEach(row => {
+    row.style.display = (row.dataset.status === status) ? '' : 'none';
+  });
+}
+
+/* ── Block / Unblock via AJAX ── */
+function toggleUserStatus(btn, userId, action) {
+  fetch('{% url "block_user" pk=0 %}'.replace('/0/', '/' + userId + '/').replace('block', action === 'block' ? 'block' : 'unblock'), {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken':      getCookie('csrftoken'),
+      'Content-Type':     'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) {
+      showToast(data.error || 'Something went wrong.', 'danger');
+      return;
+    }
+    const row   = btn.closest('tr');
+    const badge = row.querySelector('.badge');
+    if (action === 'block') {
+      badge.textContent  = 'Blocked';
+      badge.className    = 'badge danger';
+      row.dataset.status = 'blocked';
+      btn.className      = 'act-btn unblock';
+      btn.title          = 'Unblock';
+      btn.innerHTML      = '<i class="fas fa-unlock"></i>';
+      btn.setAttribute('onclick', 'toggleUserStatus(this,' + userId + ",'unblock')");
+      showToast('User blocked successfully.', 'danger');
+    } else {
+      badge.textContent  = 'Active';
+      badge.className    = 'badge success';
+      row.dataset.status = 'active';
+      btn.className      = 'act-btn block';
+      btn.title          = 'Block';
+      btn.innerHTML      = '<i class="fas fa-ban"></i>';
+      btn.setAttribute('onclick', 'toggleUserStatus(this,' + userId + ",'block')");
+      showToast('User unblocked successfully.', 'success');
+    }
+  })
+  .catch(() => showToast('Network error. Please try again.', 'danger'));
+}
+
+function blockUserAjax(btn, userId)   { toggleUserStatus(btn, userId, 'block');   }
+function unblockUserAjax(btn, userId) { toggleUserStatus(btn, userId, 'unblock'); }
+</script>
+{% endblock %}

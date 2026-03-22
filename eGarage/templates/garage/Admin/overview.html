@@ -1,0 +1,228 @@
+{% extends "garage/Admin/base.html" %}
+
+{% block page_title %}Dashboard Overview{% endblock %}
+{% block breadcrumb %}Overview{% endblock %}
+
+{% block content %}
+<section class="dash-section active" id="sec-overview">
+
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">Dashboard Overview</h1>
+      <p class="section-sub">Welcome back, Admin. Here's a live snapshot of the platform.</p>
+    </div>
+    <span class="date-pill"><i class="fas fa-calendar"></i> Today, {{ today }}</span>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card" style="--accent:#e8560a">
+      <div class="stat-icon"><i class="fas fa-users"></i></div>
+      <div class="stat-body">
+        <span class="stat-label">Total Users</span>
+        <span class="stat-value" data-target="{{ total_users }}">0</span>
+        <span class="stat-delta up"><i class="fas fa-arrow-trend-up"></i> +12 this week</span>
+      </div>
+    </div>
+    <div class="stat-card" style="--accent:#1e3a5f">
+      <div class="stat-icon" style="background:#e8f0fb;color:#1e3a5f"><i class="fas fa-screwdriver-wrench"></i></div>
+      <div class="stat-body">
+        <span class="stat-label">Service Providers</span>
+        <span class="stat-value" data-target="{{ total_providers }}">0</span>
+        <span class="stat-delta up"><i class="fas fa-arrow-trend-up"></i> +3 pending</span>
+      </div>
+    </div>
+    <div class="stat-card" style="--accent:#f9a825">
+      <div class="stat-icon" style="background:#fffbeb;color:#f9a825"><i class="fas fa-calendar-check"></i></div>
+      <div class="stat-body">
+        <span class="stat-label">Total Bookings</span>
+        <span class="stat-value" data-target="{{ total_bookings }}">0</span>
+        <span class="stat-delta up"><i class="fas fa-arrow-trend-up"></i> +8 today</span>
+      </div>
+    </div>
+    <div class="stat-card" style="--accent:#16a34a">
+      <div class="stat-icon" style="background:#f0fdf4;color:#16a34a"><i class="fas fa-indian-rupee-sign"></i></div>
+      <div class="stat-body">
+        <span class="stat-label">Revenue (Month)</span>
+        <span class="stat-value" data-target="{{ monthly_revenue }}">0</span>
+        <span class="stat-delta up"><i class="fas fa-arrow-trend-up"></i> +18% vs last month</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="analytics-grid">
+
+    <!-- Monthly Revenue Bar Chart -->
+    <div class="chart-card">
+      <div class="chart-header"><div><h3>Monthly Revenue</h3><p>Last 6 months (₹)</p></div></div>
+      <div class="bar-chart">
+        <div class="bar-group"><div class="bar" style="--h:45%"><span class="bar-tip">₹1.8L</span></div><span class="bar-label">Oct</span></div>
+        <div class="bar-group"><div class="bar" style="--h:60%"><span class="bar-tip">₹2.1L</span></div><span class="bar-label">Nov</span></div>
+        <div class="bar-group"><div class="bar" style="--h:52%"><span class="bar-tip">₹1.9L</span></div><span class="bar-label">Dec</span></div>
+        <div class="bar-group"><div class="bar" style="--h:70%"><span class="bar-tip">₹2.4L</span></div><span class="bar-label">Jan</span></div>
+        <div class="bar-group"><div class="bar" style="--h:80%"><span class="bar-tip">₹2.6L</span></div><span class="bar-label">Feb</span></div>
+        <div class="bar-group"><div class="bar active" style="--h:95%"><span class="bar-tip">₹2.8L</span></div><span class="bar-label">Mar</span></div>
+      </div>
+    </div>
+
+    <!-- Booking Status Donut Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><h3>Booking Status</h3><p>Current distribution</p></div>
+      </div>
+
+      <!-- Inline flexbox so it never breaks regardless of base CSS -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:2rem;padding:1.5rem 1rem;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+
+        <!-- Donut SVG -->
+        <svg id="donut-chart"
+          viewBox="0 0 120 120"
+          style="width:145px;height:145px;flex-shrink:0;"
+          data-comp="{{ completed_bookings|default:0 }}"
+          data-pend="{{ pending_bookings|default:0 }}"
+          data-prog="{{ inprogress_bookings|default:0 }}"
+          data-canc="{{ cancelled_bookings|default:0 }}"
+          data-total="{{ total_bookings|default:0 }}">
+          <!-- Grey track ring -->
+          <circle cx="60" cy="60" r="45" fill="none" stroke="#e5e7eb" stroke-width="18"/>
+          <!-- Coloured segments injected by JS -->
+          <!-- Centre labels -->
+          <text x="60" y="55" text-anchor="middle" font-size="14" font-weight="700" fill="#111827">{{ total_bookings }}</text>
+          <text x="60" y="69" text-anchor="middle" font-size="8" fill="#6b7280">Total</text>
+        </svg>
+
+        <!-- Legend: each row is its own flex row -->
+        <div style="display:flex;flex-direction:column;gap:0.7rem;min-width:160px;max-width:200px;">
+
+          <div style="display:flex;align-items:center;gap:0.55rem;font-size:0.875rem;color:#374151;">
+            <span style="width:11px;height:11px;border-radius:50%;background:#16a34a;flex-shrink:0;display:inline-block;"></span>
+            <span style="flex:1;white-space:nowrap;">Completed</span>
+            <strong style="color:#16a34a;">{{ completed_bookings|default:0 }}</strong>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.55rem;font-size:0.875rem;color:#374151;">
+            <span style="width:11px;height:11px;border-radius:50%;background:#f9a825;flex-shrink:0;display:inline-block;"></span>
+            <span style="flex:1;white-space:nowrap;">Pending</span>
+            <strong style="color:#f9a825;">{{ pending_bookings|default:0 }}</strong>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.55rem;font-size:0.875rem;color:#374151;">
+            <span style="width:11px;height:11px;border-radius:50%;background:#3b82f6;flex-shrink:0;display:inline-block;"></span>
+            <span style="flex:1;white-space:nowrap;">In Progress</span>
+            <strong style="color:#3b82f6;">{{ inprogress_bookings|default:0 }}</strong>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.55rem;font-size:0.875rem;color:#374151;">
+            <span style="width:11px;height:11px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block;"></span>
+            <span style="flex:1;white-space:nowrap;">Cancelled</span>
+            <strong style="color:#dc2626;">{{ cancelled_bookings|default:0 }}</strong>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Recent Bookings -->
+  <div class="section-header" style="margin-top:2rem">
+    <div><h2 class="section-title" style="font-size:1.3rem">Recent Bookings</h2></div>
+    <a href="{% url 'admin_bookings' %}" class="btn-primary-sm">View All</a>
+  </div>
+  <div class="table-card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Booking ID</th>
+            <th>Customer</th>
+            <th>Service</th>
+            <th>Provider</th>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for booking in recent_bookings %}
+          <tr>
+            <td><strong>#{{ booking.id }}</strong></td>
+            <td>{{ booking.customer.get_full_name }}</td>
+            <td>{{ booking.service.name }}</td>
+            <td>{{ booking.provider.garage_name }}</td>
+            <td>{{ booking.date|date:"d M Y" }}</td>
+            <td>₹{{ booking.amount }}</td>
+            <td>
+              {% if booking.status == 'completed' %}
+                <span class="badge success">Completed</span>
+              {% elif booking.status == 'pending' %}
+                <span class="badge warning">Pending</span>
+              {% elif booking.status == 'in_progress' %}
+                <span class="badge info">In Progress</span>
+              {% else %}
+                <span class="badge danger">Cancelled</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" style="text-align:center;color:var(--text-muted)">No recent bookings.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+
+<!-- Dynamic Donut Segments -->
+<script>
+(function () {
+  var svg = document.getElementById('donut-chart');
+  if (!svg) return;
+
+  var comp  = parseInt(svg.dataset.comp)  || 0;
+  var pend  = parseInt(svg.dataset.pend)  || 0;
+  var prog  = parseInt(svg.dataset.prog)  || 0;
+  var canc  = parseInt(svg.dataset.canc)  || 0;
+  var total = parseInt(svg.dataset.total) || 0;
+
+  if (total === 0) return;
+
+  var circ = 2 * Math.PI * 45;
+
+  var segments = [
+    { value: comp, color: '#16a34a' },
+    { value: pend, color: '#f9a825' },
+    { value: prog, color: '#3b82f6' },
+    { value: canc, color: '#dc2626' },
+  ];
+
+  var firstText  = svg.querySelector('text');
+  var cumulative = 0;
+
+  segments.forEach(function (seg) {
+    if (seg.value === 0) return;
+    var dash   = (seg.value / total) * circ;
+    var gap    = circ - dash;
+    var offset = -cumulative;
+
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', 60);
+    c.setAttribute('cy', 60);
+    c.setAttribute('r', 45);
+    c.setAttribute('fill', 'none');
+    c.setAttribute('stroke', seg.color);
+    c.setAttribute('stroke-width', 18);
+    c.setAttribute('stroke-dasharray', dash + ' ' + gap);
+    c.setAttribute('stroke-dashoffset', offset);
+    c.setAttribute('transform', 'rotate(-90 60 60)');
+    svg.insertBefore(c, firstText);
+    cumulative += dash;
+  });
+})();
+</script>
+
+{% endblock %}

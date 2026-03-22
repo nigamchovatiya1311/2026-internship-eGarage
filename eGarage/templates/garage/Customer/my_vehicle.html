@@ -1,0 +1,93 @@
+{% extends "garage/Customer/base.html" %}
+{% load static %}
+
+{% block page_title %}My Vehicle{% endblock %}
+{% block breadcrumb %}My Vehicle{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">My Vehicle</h1>
+    <p class="section-sub">View and update your vehicle details.</p>
+  </div>
+</div>
+
+<div class="vehicle-page-grid">
+
+  <!-- Vehicle Display Card -->
+  {% if customer %}
+  <div class="vehicle-card">
+    <div class="vehicle-banner">
+      <div class="vehicle-icon"><i class="fas fa-car"></i></div>
+      <span class="vehicle-number">{{ customer.vehicleNumber }}</span>
+      <span class="vehicle-model">{{ customer.vehicleModel }} · {{ customer.vehicleYear }}</span>
+    </div>
+    <div class="vehicle-details">
+      <div class="veh-row"><span>Type</span><span>{{ customer.get_vehicleType_display }}</span></div>
+      <div class="veh-row"><span>Number</span><span>{{ customer.vehicleNumber }}</span></div>
+      <div class="veh-row"><span>Model</span><span>{{ customer.vehicleModel }}</span></div>
+      <div class="veh-row"><span>Year</span><span>{{ customer.vehicleYear|default:"—" }}</span></div>
+      {% if customer.vehicleColor %}
+      <div class="veh-row"><span>Color</span><span>{{ customer.vehicleColor }}</span></div>
+      {% endif %}
+      <div class="veh-row"><span>Services Done</span><span>{{ services_done }}</span></div>
+      <div class="veh-row"><span>Last Service</span><span>{{ last_service|date:"d M Y"|default:"—" }}</span></div>
+    </div>
+  </div>
+  {% else %}
+  <div class="card card-empty">
+    <i class="fas fa-car" style="font-size:2.5rem;color:var(--text-light);margin-bottom:12px"></i>
+    <p>No vehicle registered yet.</p>
+    <p style="font-size:0.82rem;color:var(--text-light);margin-top:4px">Fill in the form to add your vehicle.</p>
+  </div>
+  {% endif %}
+
+  <!-- Edit Form -->
+  <form class="form-card" method="POST" action="{% url 'my_vehicle' %}">
+    {% csrf_token %}
+    <h3>{{ customer|yesno:"Update Vehicle,Add Vehicle" }} Info</h3>
+
+    <div class="form-group">
+      <label>Vehicle Type</label>
+      <select name="vehicle_type" required>
+        <option value="car"  {% if customer and customer.vehicleType == 'car'  %}selected{% endif %}>Car</option>
+        <option value="bike" {% if customer and customer.vehicleType == 'bike' %}selected{% endif %}>Bike</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Vehicle Number</label>
+        <input type="text" name="vehicle_number" placeholder="e.g. GJ01AB1234"
+               value="{{ customer.vehicleNumber|default:'' }}" required/>
+      </div>
+      <div class="form-group">
+        <label>Vehicle Model</label>
+        <input type="text" name="vehicle_model" placeholder="e.g. Maruti Swift"
+               value="{{ customer.vehicleModel|default:'' }}" required/>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Year</label>
+        <input type="number" name="vehicle_year" placeholder="e.g. 2022"
+               min="1990" max="2026"
+               value="{{ customer.vehicleYear|default:'' }}"/>
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <input type="text" name="vehicle_color" placeholder="e.g. Blue"
+               value="{{ customer.vehicleColor|default:'' }}"/>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">
+        <i class="fas fa-save"></i> Save Changes
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

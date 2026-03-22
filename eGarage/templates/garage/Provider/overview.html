@@ -1,0 +1,119 @@
+{% extends "garage/Provider/base.html" %}
+{% block page_title %}Overview{% endblock %}
+{% block breadcrumb %}Overview{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">Overview</h1>
+    <p class="section-sub">Welcome back, {{ provider.garageName }}! Here's today's snapshot.</p>
+  </div>
+  <span class="date-pill"><i class="fas fa-calendar"></i> {{ today }}</span>
+</div>
+
+<!-- STAT CARDS -->
+<div class="stats-grid">
+  <div class="stat-card" style="--accent:#e8560a">
+    <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+    <div>
+      <span class="stat-label">Total Bookings</span>
+      <span class="stat-value">{{ total_bookings }}</span>
+      <span class="stat-delta up"><i class="fas fa-arrow-trend-up"></i> All time</span>
+    </div>
+  </div>
+  <div class="stat-card" style="--accent:#f9a825">
+    <div class="stat-icon" style="background:#fffbeb;color:#f9a825"><i class="fas fa-clock"></i></div>
+    <div>
+      <span class="stat-label">Pending</span>
+      <span class="stat-value">{{ pending_count }}</span>
+      <span class="stat-delta" style="color:#f59e0b">Needs action</span>
+    </div>
+  </div>
+  <div class="stat-card" style="--accent:#16a34a">
+    <div class="stat-icon" style="background:#f0fdf4;color:#16a34a"><i class="fas fa-indian-rupee-sign"></i></div>
+    <div>
+      <span class="stat-label">This Month</span>
+      <span class="stat-value">₹{{ monthly_revenue }}</span>
+      <span class="stat-delta up"><i class="fas fa-arrow-trend-up"></i> Revenue</span>
+    </div>
+  </div>
+  <div class="stat-card" style="--accent:#7c3aed">
+    <div class="stat-icon" style="background:#f5f3ff;color:#7c3aed"><i class="fas fa-star"></i></div>
+    <div>
+      <span class="stat-label">Rating</span>
+      <span class="stat-value">{{ provider.rating }}</span>
+      <span class="stat-delta">{{ total_reviews }} reviews</span>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="charts-row">
+  <div class="chart-card wide">
+    <div class="chart-header">
+      <div><h3>Booking Trend</h3><p>Monthly bookings this year</p></div>
+    </div>
+    <div class="bar-chart">
+      {% for item in monthly_bookings %}
+      <div class="bar-group">
+        <div class="bar {% if forloop.last %}active{% endif %}" style="--h:{{ item.pct }}%">
+          <span class="bar-tip">{{ item.count }}</span>
+        </div>
+        <span class="bar-label">{{ item.month }}</span>
+      </div>
+      {% empty %}
+      <div style="width:100%;text-align:center;color:var(--text-light);font-size:0.82rem;padding:20px 0">No booking data yet</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header"><div><h3>Quick Stats</h3><p>All time performance</p></div></div>
+    <div class="quick-stats">
+      <div class="qs-row"><span>Completion Rate</span><strong style="color:var(--success)">{{ completion_rate }}%</strong></div>
+      <div class="qs-row"><span>Avg Service Time</span><strong>{{ avg_duration }} min</strong></div>
+      <div class="qs-row"><span>Services Offered</span><strong>{{ services_count }}</strong></div>
+      <div class="qs-row"><span>This Month Bookings</span><strong>{{ monthly_count }}</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- TODAY'S BOOKINGS -->
+<div class="card">
+  <div class="card-header">
+    <h3>Today's Bookings</h3>
+    <a href="{% url 'provider_bookings' %}" class="btn-link">View All <i class="fas fa-arrow-right"></i></a>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>Booking ID</th><th>Customer</th><th>Service</th><th>Time</th><th>Vehicle</th><th>Status</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for b in todays_bookings %}
+        <tr>
+          <td><strong>#BK{{ b.bookingId }}</strong></td>
+          <td>{{ b.customer.user.get_full_name }}</td>
+          <td>{{ b.service.serviceName }}</td>
+          <td>{{ b.bookingTime|default:"—" }}</td>
+          <td>{{ b.customer.vehicleNumber }}</td>
+          <td><span class="badge {{ b.bookingStatus }}">{{ b.get_bookingStatus_display }}</span></td>
+          <td>
+            <div class="action-btns">
+              {% if b.bookingStatus == 'pending' %}
+              <form method="POST" action="{% url 'provider_confirm_booking' b.bookingId %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="act-btn approve" title="Confirm"><i class="fas fa-check"></i></button>
+              </form>
+              {% endif %}
+              <a href="{% url 'provider_booking_detail' b.bookingId %}" class="act-btn view" title="View"><i class="fas fa-eye"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty-cell">No bookings scheduled for today.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

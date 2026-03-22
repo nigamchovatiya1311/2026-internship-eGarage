@@ -1,0 +1,237 @@
+{% extends "garage/Admin/base.html" %}
+{% block page_title %}Generate Reports{% endblock %}
+{% block breadcrumb %}Generate Reports{% endblock %}
+
+{% block content %}
+<section class="dash-section active" id="sec-reports">
+
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">Generate Reports</h1>
+      <p class="section-sub">Download reports in CSV, Excel or PDF format.</p>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div style="padding:10px 16px;border-radius:8px;margin-bottom:14px;font-size:13px;
+                  background:#ecfdf5;color:#166534;border:1px solid #bbf7d0;">
+        <i class="fas fa-check-circle"></i> {{ msg }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <style>
+    .report-grid   { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:20px; }
+    .report-card   { background:var(--card-bg,#fff); border:1px solid var(--border-color,#e5e7eb);
+                     border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+    .report-top    { display:flex; align-items:center; gap:14px; padding:18px 20px 10px; }
+    .report-icon   { width:44px; height:44px; border-radius:10px; display:flex;
+                     align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+    .report-body   { padding:0 20px 14px; flex:1; }
+    .report-body h4{ font-size:15px; font-weight:600; margin:0 0 4px; }
+    .report-body p { font-size:12px; color:var(--text-muted,#6b7280); margin:0 0 12px; }
+    .rpt-filters   { display:flex; gap:8px; flex-wrap:wrap; }
+    .rpt-filters select {
+      padding:6px 10px; border:1px solid var(--border-color,#e5e7eb); border-radius:6px;
+      font-size:12px; background:var(--input-bg,#f8fafc); color:var(--text-primary,#111827);
+      cursor:pointer; flex:1; min-width:120px;
+    }
+    .report-footer { padding:14px 20px; border-top:1px solid var(--border-color,#e5e7eb);
+                     display:flex; gap:8px; flex-wrap:wrap; }
+    .btn-dl        { display:inline-flex; align-items:center; gap:6px; padding:8px 16px;
+                     border-radius:7px; font-size:12px; font-weight:600; text-decoration:none;
+                     cursor:pointer; border:1.5px solid; transition:opacity .15s; }
+    .btn-dl:hover  { opacity:.8; }
+    .btn-dl.csv    { background:#ecfdf5; color:#166534; border-color:#86efac; }
+    .btn-dl.excel  { background:#eff6ff; color:#1d4ed8; border-color:#93c5fd; }
+    .btn-dl.pdf    { background:#fff7ed; color:#c2410c; border-color:#fdba74; }
+  </style>
+
+  <div class="report-grid">
+
+    <!-- BOOKINGS -->
+    <div class="report-card">
+      <div class="report-top">
+        <div class="report-icon" style="background:#fff3ee;color:#e8560a"><i class="fas fa-calendar-check"></i></div>
+        <div><h4 style="margin:0 0 2px;font-size:15px;font-weight:600;">Bookings Report</h4>
+          <p style="margin:0;font-size:12px;color:var(--text-muted,#6b7280);">Status, provider, customer, vehicle and notes.</p></div>
+      </div>
+      <div class="report-body">
+        <div class="rpt-filters">
+          <select id="bookings-period">
+            <option value="month">This Month</option><option value="last_month">Last Month</option><option value="year">This Year</option>
+          </select>
+          <select id="bookings-extra">
+            <option value="">All Status</option><option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option><option value="pending">Pending</option><option value="in_progress">In Progress</option>
+          </select>
+        </div>
+      </div>
+      <div class="report-footer">
+        <a class="btn-dl csv"   id="bookings-csv"   href="{% url 'export_report' 'bookings' 'csv' %}"><i class="fas fa-file-csv"></i> CSV</a>
+        <a class="btn-dl excel" id="bookings-excel" href="{% url 'export_report' 'bookings' 'excel' %}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn-dl pdf"   id="bookings-pdf"   href="{% url 'export_report' 'bookings' 'pdf' %}" target="_blank"><i class="fas fa-file-pdf"></i> PDF</a>
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="report-card">
+      <div class="report-top">
+        <div class="report-icon" style="background:#f0fdf4;color:#16a34a"><i class="fas fa-indian-rupee-sign"></i></div>
+        <div><h4 style="margin:0 0 2px;font-size:15px;font-weight:600;">Payments Report</h4>
+          <p style="margin:0;font-size:12px;color:var(--text-muted,#6b7280);">Revenue, transactions, refunds and breakdowns.</p></div>
+      </div>
+      <div class="report-body">
+        <div class="rpt-filters">
+          <select id="payments-period">
+            <option value="month">This Month</option><option value="last_month">Last Month</option><option value="year">This Year</option>
+          </select>
+          <select id="payments-extra">
+            <option value="">All Methods</option><option value="cash">Cash</option><option value="card">Card</option><option value="online">Online</option>
+          </select>
+        </div>
+      </div>
+      <div class="report-footer">
+        <a class="btn-dl csv"   id="payments-csv"   href="{% url 'export_report' 'payments' 'csv' %}"><i class="fas fa-file-csv"></i> CSV</a>
+        <a class="btn-dl excel" id="payments-excel" href="{% url 'export_report' 'payments' 'excel' %}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn-dl pdf"   id="payments-pdf"   href="{% url 'export_report' 'payments' 'pdf' %}" target="_blank"><i class="fas fa-file-pdf"></i> PDF</a>
+      </div>
+    </div>
+
+    <!-- PROVIDERS -->
+    <div class="report-card">
+      <div class="report-top">
+        <div class="report-icon" style="background:#e8f0fb;color:#1e3a5f"><i class="fas fa-screwdriver-wrench"></i></div>
+        <div><h4 style="margin:0 0 2px;font-size:15px;font-weight:600;">Service Providers Report</h4>
+          <p style="margin:0;font-size:12px;color:var(--text-muted,#6b7280);">Performance, ratings, approval status.</p></div>
+      </div>
+      <div class="report-body">
+        <div class="rpt-filters">
+          <select id="providers-period">
+            <option value="month">This Month</option><option value="last_month">Last Month</option><option value="year">This Year</option>
+          </select>
+          <select id="providers-extra">
+            <option value="">All Providers</option><option value="approved">Approved</option>
+            <option value="pending">Pending</option><option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+      <div class="report-footer">
+        <a class="btn-dl csv"   id="providers-csv"   href="{% url 'export_report' 'providers' 'csv' %}"><i class="fas fa-file-csv"></i> CSV</a>
+        <a class="btn-dl excel" id="providers-excel" href="{% url 'export_report' 'providers' 'excel' %}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn-dl pdf"   id="providers-pdf"   href="{% url 'export_report' 'providers' 'pdf' %}" target="_blank"><i class="fas fa-file-pdf"></i> PDF</a>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="report-card">
+      <div class="report-top">
+        <div class="report-icon" style="background:#f5f3ff;color:#7c3aed"><i class="fas fa-users"></i></div>
+        <div><h4 style="margin:0 0 2px;font-size:15px;font-weight:600;">Users Report</h4>
+          <p style="margin:0;font-size:12px;color:var(--text-muted,#6b7280);">Registrations, roles, vehicle profiles.</p></div>
+      </div>
+      <div class="report-body">
+        <div class="rpt-filters">
+          <select id="users-period">
+            <option value="month">This Month</option><option value="last_month">Last Month</option><option value="year">This Year</option>
+          </select>
+          <select id="users-extra">
+            <option value="">All Roles</option><option value="customer">Customers</option>
+            <option value="service_provider">Providers</option><option value="admin">Admins</option>
+          </select>
+        </div>
+      </div>
+      <div class="report-footer">
+        <a class="btn-dl csv"   id="users-csv"   href="{% url 'export_report' 'users' 'csv' %}"><i class="fas fa-file-csv"></i> CSV</a>
+        <a class="btn-dl excel" id="users-excel" href="{% url 'export_report' 'users' 'excel' %}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn-dl pdf"   id="users-pdf"   href="{% url 'export_report' 'users' 'pdf' %}" target="_blank"><i class="fas fa-file-pdf"></i> PDF</a>
+      </div>
+    </div>
+
+    <!-- INVOICES -->
+    <div class="report-card">
+      <div class="report-top">
+        <div class="report-icon" style="background:#f0fdf4;color:#16a34a"><i class="fas fa-file-invoice"></i></div>
+        <div><h4 style="margin:0 0 2px;font-size:15px;font-weight:600;">Invoices Report</h4>
+          <p style="margin:0;font-size:12px;color:var(--text-muted,#6b7280);">Tax, discount and total amount details.</p></div>
+      </div>
+      <div class="report-body">
+        <div class="rpt-filters">
+          <select id="invoices-period">
+            <option value="month">This Month</option><option value="last_month">Last Month</option><option value="year">This Year</option>
+          </select>
+        </div>
+      </div>
+      <div class="report-footer">
+        <a class="btn-dl csv"   id="invoices-csv"   href="{% url 'export_report' 'invoices' 'csv' %}"><i class="fas fa-file-csv"></i> CSV</a>
+        <a class="btn-dl excel" id="invoices-excel" href="{% url 'export_report' 'invoices' 'excel' %}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn-dl pdf"   id="invoices-pdf"   href="{% url 'export_report' 'invoices' 'pdf' %}" target="_blank"><i class="fas fa-file-pdf"></i> PDF</a>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="report-card">
+      <div class="report-top">
+        <div class="report-icon" style="background:#fffbeb;color:#f9a825"><i class="fas fa-star"></i></div>
+        <div><h4 style="margin:0 0 2px;font-size:15px;font-weight:600;">Reviews Report</h4>
+          <p style="margin:0;font-size:12px;color:var(--text-muted,#6b7280);">Ratings, comments and flagged content.</p></div>
+      </div>
+      <div class="report-body">
+        <div class="rpt-filters">
+          <select id="reviews-period">
+            <option value="month">This Month</option><option value="last_month">Last Month</option><option value="year">This Year</option>
+          </select>
+          <select id="reviews-extra">
+            <option value="">All Ratings</option><option value="5">5 Stars</option>
+            <option value="4">4 Stars</option><option value="low">1-2 Stars</option>
+          </select>
+        </div>
+      </div>
+      <div class="report-footer">
+        <a class="btn-dl csv"   id="reviews-csv"   href="{% url 'export_report' 'reviews' 'csv' %}"><i class="fas fa-file-csv"></i> CSV</a>
+        <a class="btn-dl excel" id="reviews-excel" href="{% url 'export_report' 'reviews' 'excel' %}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn-dl pdf"   id="reviews-pdf"   href="{% url 'export_report' 'reviews' 'pdf' %}" target="_blank"><i class="fas fa-file-pdf"></i> PDF</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{% block extra_js %}
+<script>
+/* When a dropdown changes, append ?period=...&extra=... to the button hrefs */
+var CARDS = [
+  { p: 'bookings',  e: true  },
+  { p: 'payments',  e: true  },
+  { p: 'providers', e: true  },
+  { p: 'users',     e: true  },
+  { p: 'invoices',  e: false },
+  { p: 'reviews',   e: true  },
+];
+
+function updateLinks(prefix, hasExtra) {
+  var periodEl = document.getElementById(prefix + '-period');
+  var extraEl  = document.getElementById(prefix + '-extra');
+  var period   = periodEl ? periodEl.value : 'month';
+  var extra    = (hasExtra && extraEl) ? extraEl.value : '';
+  var params   = '?period=' + encodeURIComponent(period) + '&extra=' + encodeURIComponent(extra);
+
+  ['csv', 'excel', 'pdf'].forEach(function(fmt) {
+    var btn = document.getElementById(prefix + '-' + fmt);
+    if (!btn) return;
+    btn.href = btn.href.split('?')[0] + params;
+  });
+}
+
+CARDS.forEach(function(c) {
+  ['period', 'extra'].forEach(function(t) {
+    var el = document.getElementById(c.p + '-' + t);
+    if (el) el.addEventListener('change', function() { updateLinks(c.p, c.e); });
+  });
+  updateLinks(c.p, c.e);   /* set on page load */
+});
+</script>
+{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,271 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Garage | {% block page_title %}Admin Panel{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="{%  static 'css/garage/admin/admin.css' %}"/>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><i class="fas fa-wrench"></i></div>
+      <div class="logo-text">
+        <span class="logo-main">E-GARAGE</span>
+        <span class="logo-sub">Admin Panel</span>
+      </div>
+    </div>
+    <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
+  </div>
+
+  <div class="sidebar-admin-card">
+    <div class="admin-avatar"><i class="fas fa-user-shield"></i></div>
+    <div class="admin-info">
+      <span class="admin-name">Super Admin</span>
+      <span class="admin-badge"><i class="fas fa-circle"></i> Online</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+
+    <!-- ── Main ── -->
+    <div class="nav-section-label">Main</div>
+    <a href="{% url 'admin_overview' %}"
+       class="nav-item {% if active_section == 'overview' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-chart-pie"></i></div>
+      <span>Overview</span>
+    </a>
+
+    <!-- ── Users ── -->
+    <div class="nav-section-label">Users</div>
+    <a href="{% url 'admin_users' %}"
+       class="nav-item {% if active_section == 'users' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-users"></i></div>
+      <span>Manage Users</span>
+      {% if total_users %}
+        <span class="nav-badge">{{ total_users }}</span>
+      {% endif %}
+    </a>
+    <a href="{% url 'admin_providers' %}"
+       class="nav-item {% if active_section == 'providers' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+      <span>Service Providers</span>
+      {% if pending_providers %}
+        <span class="nav-badge warn">{{ pending_providers }}</span>
+      {% endif %}
+    </a>
+    <a href="{% url 'admin_customers' %}"
+       class="nav-item {% if active_section == 'customers' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-car"></i></div>
+      <span>Customer Profiles</span>
+    </a>
+
+    <!-- ── Operations ── -->
+    <div class="nav-section-label">Operations</div>
+    <a href="{% url 'admin_services' %}"
+       class="nav-item {% if active_section == 'services' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-tags"></i></div>
+      <span>Services</span>
+    </a>
+    <a href="{% url 'admin_bookings' %}"
+       class="nav-item {% if active_section == 'bookings' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
+      <span>Bookings</span>
+      {% if new_bookings %}
+        <span class="nav-badge new">{{ new_bookings }}</span>
+      {% endif %}
+    </a>
+    <a href="{% url 'admin_payments' %}"
+       class="nav-item {% if active_section == 'payments' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-indian-rupee-sign"></i></div>
+      <span>Payments</span>
+    </a>
+    <a href="{% url 'admin_invoices' %}"
+       class="nav-item {% if active_section == 'invoices' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-file-invoice"></i></div>
+      <span>Invoices</span>
+    </a>
+
+    <!-- ── Feedback ── -->
+    <div class="nav-section-label">Feedback</div>
+    <a href="{% url 'admin_reviews' %}"
+       class="nav-item {% if active_section == 'reviews' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-star"></i></div>
+      <span>Reviews</span>
+    </a>
+    <a href="{% url 'admin_notifications' %}"
+       class="nav-item {% if active_section == 'notifications' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-bell"></i></div>
+      <span>Notifications</span>
+      {% if unread_notifications %}
+        <span class="nav-badge new">{{ unread_notifications }}</span>
+      {% endif %}
+    </a>
+
+    <!-- ── Reports ── -->
+    <div class="nav-section-label">Reports</div>
+    <a href="{% url 'admin_disputes' %}"
+       class="nav-item {% if active_section == 'disputes' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-triangle-exclamation"></i></div>
+      <span>Disputes</span>
+      {% if open_disputes %}
+        <span class="nav-badge warn">{{ open_disputes }}</span>
+      {% endif %}
+    </a>
+    <a href="{% url 'admin_analytics' %}"
+       class="nav-item {% if active_section == 'analytics' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
+      <span>Analytics</span>
+    </a>
+    <a href="{% url 'admin_reports' %}"
+       class="nav-item {% if active_section == 'reports' %}active{% endif %}">
+      <div class="nav-icon"><i class="fas fa-file-chart-column"></i></div>
+      <span>Generate Reports</span>
+    </a>
+
+    <!-- ── System ── -->
+    <div class="nav-section-label">System</div>
+    <a href="{% url 'admin_logout' %}" class="nav-item logout">
+      <div class="nav-icon"><i class="fas fa-right-from-bracket"></i></div>
+      <span>Logout</span>
+    </a>
+
+  </nav>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ══════════════════ MAIN CONTENT SHELL ══════════════════ -->
+<main class="main-content" id="mainContent">
+
+  <!-- ── Top Navigation Bar ── -->
+  <header class="topnav">
+    <div class="topnav-left">
+      <button class="hamburger-btn" id="hamburgerBtn">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="breadcrumb">
+        <span class="bread-home"><i class="fas fa-house"></i></span>
+        <i class="fas fa-chevron-right bread-sep"></i>
+        <span class="bread-current">{% block breadcrumb %}Dashboard{% endblock %}</span>
+      </div>
+    </div>
+    <div class="topnav-right">
+      <div class="search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search..."/>
+      </div>
+
+      <!-- Notification Bell with dynamic count -->
+      <div class="notif-wrapper" style="position:relative;display:inline-block;">
+        <button class="topnav-btn notif-btn" id="notifBellBtn">
+          <i class="fas fa-bell"></i>
+          {% if unread_notifications %}
+            <span class="notif-dot"></span>
+          {% endif %}
+        </button>
+
+        <!-- Notification Dropdown Popup -->
+        <div class="notif-dropdown" id="notifDropdown"
+             style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:320px;
+                    background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.12);
+                    border:1px solid #e5e7eb;z-index:9999;overflow:hidden;">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;
+                      padding:14px 16px;border-bottom:1px solid #f3f4f6;">
+            <span style="font-weight:700;font-size:0.95rem;color:#111827;">Notifications</span>
+            {% if unread_notifications %}
+              <span style="background:#e8560a;color:#fff;font-size:0.7rem;font-weight:700;
+                           padding:2px 8px;border-radius:20px;">
+                {{ unread_notifications }} new
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- Notification List -->
+          <div style="max-height:300px;overflow-y:auto;">
+            {% if notifications_list %}
+              {% for notif in notifications_list %}
+              <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;
+                          border-bottom:1px solid #f9fafb;
+                          {% if not notif.is_read %}background:#fff8f5;{% endif %}
+                          transition:background 0.2s;">
+                <div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;
+                             background:{% if not notif.is_read %}#e8560a{% else %}#d1d5db{% endif %};"></div>
+                <div style="flex:1;">
+                  <p style="margin:0;font-size:0.83rem;color:#374151;line-height:1.4;">{{ notif.message }}</p>
+                  <span style="font-size:0.72rem;color:#9ca3af;margin-top:3px;display:block;">
+                    {{ notif.created_at|timesince }} ago
+                  </span>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div style="padding:24px;text-align:center;color:#9ca3af;font-size:0.85rem;">
+                <i class="fas fa-bell-slash" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>
+                No notifications yet
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Footer -->
+          <div style="padding:10px 16px;border-top:1px solid #f3f4f6;text-align:center;">
+            <a href="{% url 'admin_notifications' %}"
+               style="font-size:0.82rem;color:#e8560a;font-weight:600;text-decoration:none;">
+              View all notifications
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <button class="topnav-btn"><i class="fas fa-gear"></i></button>
+      <div class="topnav-avatar">A</div>
+    </div>
+  </header>
+
+  <!-- ══ PAGE CONTENT — each partial fills this block ══ -->
+  {% block content %}{% endblock %}
+
+  <!-- ══════════════════ SHARED MODALS ══════════════════ -->
+  {% include "garage/Admin/model.html" %}
+
+</main>
+
+<!-- ── Shared JS ── -->
+<script src="{% static 'js/Admin/admin_dashboard.js' %}"></script>
+
+<!-- Notification Bell Toggle -->
+<script>
+(function () {
+  var btn      = document.getElementById('notifBellBtn');
+  var dropdown = document.getElementById('notifDropdown');
+  if (!btn || !dropdown) return;
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var isOpen = dropdown.style.display === 'block';
+    dropdown.style.display = isOpen ? 'none' : 'block';
+  });
+
+  // Close when clicking outside
+  document.addEventListener('click', function () {
+    dropdown.style.display = 'none';
+  });
+
+  dropdown.addEventListener('click', function (e) {
+    e.stopPropagation(); // keep open when clicking inside
+  });
+})();
+</script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

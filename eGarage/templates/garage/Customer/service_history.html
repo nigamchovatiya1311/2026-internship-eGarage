@@ -1,0 +1,98 @@
+{% extends "garage/Customer/base.html" %}
+{% load static %}
+
+{% block page_title %}Service History{% endblock %}
+{% block breadcrumb %}Service History{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">Service History</h1>
+    <p class="section-sub">All completed services with invoices and reviews.</p>
+  </div>
+</div>
+
+<div class="hist-list">
+  {% for item in history %}
+  <div class="hist-item">
+    <div class="hist-header">
+      <div>
+        <div class="hist-svc">{{ item.booking.service.serviceName }}</div>
+        <div class="hist-prov">{{ item.booking.provider.garageName }}</div>
+      </div>
+      <span class="badge completed">Completed</span>
+    </div>
+
+    <div class="hist-meta">
+      <span><i class="fas fa-calendar"></i> {{ item.booking.bookingDate|date:"d M Y" }}</span>
+      {% if item.booking.service.estimatedDuration %}
+      <span><i class="fas fa-clock"></i> {{ item.booking.service.estimatedDuration }} min</span>
+      {% endif %}
+      <span><i class="fas fa-store"></i> {{ item.booking.provider.garageName }}</span>
+      <span><i class="fas fa-tag"></i> #BK{{ item.booking.bookingId }}</span>
+    </div>
+
+    <div class="hist-footer">
+      <span class="hist-amount">₹{{ item.amount }}</span>
+      <div class="hist-actions">
+        <!-- Star rating display -->
+        {% if item.review %}
+        <div class="rev-stars">
+          {% for i in "12345" %}
+            {% if forloop.counter <= item.review.rating %}★{% else %}☆{% endif %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <!-- Review form -->
+        <button class="btn-outline-sm" onclick="toggleReview({{ item.booking.bookingId }})">
+          <i class="fas fa-star"></i> Write Review
+        </button>
+        {% endif %}
+
+        <!-- Invoice download -->
+        {% if item.invoice %}
+        <a href="{% url 'customer_download_invoice' item.invoice.invoiceId %}" class="btn-outline-sm">
+          <i class="fas fa-download"></i> Invoice
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Collapsible Review Form -->
+    {% if not item.review %}
+    <div class="review-form-wrap" id="review-{{ item.booking.bookingId }}" style="display:none">
+      <form method="POST" action="{% url 'submit_review' item.booking.bookingId %}">
+        {% csrf_token %}
+        <div class="star-picker" id="stars-{{ item.booking.bookingId }}">
+          {% for i in "12345" %}
+          <input type="radio" name="rating" value="{{ forloop.counter }}" id="star{{ forloop.counter }}-{{ item.booking.bookingId }}"/>
+          <label for="star{{ forloop.counter }}-{{ item.booking.bookingId }}">★</label>
+          {% endfor %}
+        </div>
+        <textarea name="comment" rows="2" placeholder="Share your experience..." style="width:100%;margin-top:8px;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:0.85rem;resize:vertical"></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+          <button type="button" class="btn-secondary" onclick="toggleReview({{ item.booking.bookingId }})">Cancel</button>
+          <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Submit</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+  {% empty %}
+  <div class="empty-state">
+    <i class="fas fa-history"></i>
+    <p>No completed services yet. <a href="{% url 'book_service' %}">Book a service now!</a></p>
+  </div>
+  {% endfor %}
+</div>
+
+{% block extra_js %}
+<script>
+function toggleReview(id) {
+  var el = document.getElementById('review-' + id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}
+{% endblock %}

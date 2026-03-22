@@ -1,0 +1,345 @@
+{% extends "garage/Admin/base.html" %}
+{% block page_title %}Notifications{% endblock %}
+{% block breadcrumb %}Notifications{% endblock %}
+
+{% block content %}
+<section class="dash-section active" id="sec-notifications">
+
+  <!-- HEADER -->
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">Notifications</h1>
+      <p class="section-sub">All platform notifications sent to users.</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      {% if unread_count > 0 %}
+      <form method="POST" action="{% url 'mark_all_read' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-secondary-sm"
+          style="padding:8px 16px;border:1.5px solid #e5e7eb;border-radius:8px;
+                 background:#fff;font-size:13px;font-weight:500;cursor:pointer;
+                 color:#374151;display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-check-double"></i> Mark All Read
+        </button>
+      </form>
+      {% endif %}
+      <button class="btn-primary-sm" onclick="openNotifModal()">
+        <i class="fas fa-paper-plane"></i> Send Notification
+      </button>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div style="padding:10px 16px;border-radius:8px;margin-bottom:14px;font-size:13px;
+                  background:#ecfdf5;color:#166534;border:1px solid #bbf7d0;">
+        <i class="fas fa-check-circle"></i> {{ msg }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- STAT CARDS -->
+  <div class="stats-grid four-col" style="margin-bottom:20px;">
+    <div class="mini-stat" style="--c:#e8560a">
+      <i class="fas fa-bell"></i>
+      <div><strong>{{ total_sent }}</strong><span>Total Sent</span></div>
+    </div>
+    <div class="mini-stat" style="--c:#3b82f6">
+      <i class="fas fa-envelope-open"></i>
+      <div><strong>{{ read_count }}</strong><span>Read</span></div>
+    </div>
+    <div class="mini-stat" style="--c:#f9a825">
+      <i class="fas fa-envelope"></i>
+      <div><strong id="unreadStatCount">{{ unread_count }}</strong><span>Unread</span></div>
+    </div>
+    <div class="mini-stat" style="--c:#16a34a">
+      <i class="fas fa-check-double"></i>
+      <div><strong>{{ open_rate }}%</strong><span>Open Rate</span></div>
+    </div>
+  </div>
+
+  <!-- FILTER TABS -->
+  <div style="display:flex;gap:4px;border-bottom:2px solid #e5e7eb;margin-bottom:18px;">
+    <button onclick="filterNotifs('all')" id="tab-all"
+      style="padding:8px 20px;font-size:13px;font-weight:500;border:none;
+             border-radius:6px 6px 0 0;cursor:pointer;margin-bottom:-2px;
+             background:#fff8f5;color:#e8560a;
+             border-bottom:2px solid #e8560a;">
+      All
+      <span id="badge-all"
+        style="background:#e8560a;color:#fff;border-radius:10px;
+               padding:1px 7px;font-size:11px;margin-left:4px;">{{ notifications|length }}</span>
+    </button>
+    <button onclick="filterNotifs('unread')" id="tab-unread"
+      style="padding:8px 20px;font-size:13px;font-weight:500;border:none;
+             border-radius:6px 6px 0 0;cursor:pointer;margin-bottom:-2px;
+             background:transparent;color:#6b7280;border-bottom:2px solid transparent;">
+      Unread
+      <span id="badge-unread"
+        style="background:#f59e0b;color:#fff;border-radius:10px;
+               padding:1px 7px;font-size:11px;margin-left:4px;">{{ unread_count }}</span>
+    </button>
+  </div>
+
+  <!-- NOTIFICATION LIST -->
+  <div class="notif-list" id="notifList">
+    {% for notif in notifications %}
+    <div class="notif-card {% if not notif.is_read %}unread{% endif %}"
+         id="notif-{{ notif.id }}"
+         data-read="{{ notif.is_read|lower }}"
+         style="transition:opacity 0.35s,transform 0.35s;position:relative;">
+
+      <!-- Unread indicator bar -->
+      {% if not notif.is_read %}
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;
+                  background:#e8560a;border-radius:4px 0 0 4px;"></div>
+      {% endif %}
+
+      <!-- Icon -->
+      <div class="notif-type-icon {{ notif.notif_type }}">
+        {% if notif.notif_type == 'booking_confirmed' %}<i class="fas fa-calendar-check"></i>
+        {% elif notif.notif_type == 'payment_received' %}<i class="fas fa-indian-rupee-sign"></i>
+        {% elif notif.notif_type == 'service_completed' %}<i class="fas fa-screwdriver-wrench"></i>
+        {% elif notif.notif_type == 'booking_cancelled' %}<i class="fas fa-times-circle"></i>
+        {% else %}<i class="fas fa-info-circle"></i>{% endif %}
+      </div>
+
+      <!-- Body -->
+      <div class="notif-body" style="flex:1;">
+        <div class="notif-title-row">
+          <strong>{{ notif.title }}</strong>
+          <span class="badge {% if notif.notif_type == 'booking_confirmed' or notif.notif_type == 'service_completed' %}success{% elif notif.notif_type == 'payment_received' %}info{% elif notif.notif_type == 'booking_cancelled' %}danger{% else %}{% endif %}"
+                style="font-size:0.65rem;">
+            {{ notif.get_notif_type_display }}
+          </span>
+        </div>
+        <p style="margin:4px 0 6px;">{{ notif.message }}</p>
+        <div class="notif-meta">
+          <span><i class="fas fa-user"></i>
+            {% if notif.recipient %}{{ notif.recipient.get_full_name }}{% else %}All Users{% endif %}
+          </span>
+          <span><i class="fas fa-clock"></i> {{ notif.created_at|timesince }} ago</span>
+          {% if not notif.is_read %}
+            <span class="unread-dot" id="unread-dot-{{ notif.id }}">● Unread</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Mark Read button (only on unread) -->
+      {% if not notif.is_read %}
+      <div style="display:flex;align-items:center;margin-left:12px;">
+        <button
+          onclick="markRead({{ notif.id }}, '{% url 'mark_read' notif.id %}')"
+          id="read-btn-{{ notif.id }}"
+          title="Mark as read"
+          style="padding:6px 14px;background:#f0fdf4;color:#16a34a;
+                 border:1.5px solid #86efac;border-radius:8px;
+                 font-size:12px;font-weight:600;cursor:pointer;
+                 white-space:nowrap;display:flex;align-items:center;gap:5px;">
+          <i class="fas fa-check"></i> Mark Read
+        </button>
+      </div>
+      {% endif %}
+
+    </div>
+    {% empty %}
+    <div id="emptyState" style="text-align:center;padding:48px 20px;color:#9ca3af;">
+      <i class="fas fa-bell-slash" style="font-size:32px;opacity:0.3;display:block;margin-bottom:10px;"></i>
+      No notifications yet.
+    </div>
+    {% endfor %}
+  </div>
+
+</section>
+
+<!-- ══ SEND NOTIFICATION MODAL ════════════════════════════════════════════ -->
+<style>
+  #notifModal { display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55); }
+  #notifModal.is-open { display:block; }
+  #notifModalBox {
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:#fff;border-radius:14px;padding:28px 30px;
+    width:90%;max-width:500px;box-shadow:0 12px 48px rgba(0,0,0,0.22);
+  }
+</style>
+
+<div id="notifModal">
+  <div id="notifModalBox">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-paper-plane" style="color:#e8560a;font-size:16px;"></i>
+        <h3 style="margin:0;font-size:16px;font-weight:700;letter-spacing:0.5px;">SEND NOTIFICATION</h3>
+      </div>
+      <button type="button" onclick="closeNotifModal()"
+        style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1;padding:0;">
+        &times;
+      </button>
+    </div>
+
+    <form method="POST" action="{% url 'send_notification' %}">
+      {% csrf_token %}
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;">RECIPIENT</label>
+        <select name="recipient"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f8fafc;">
+          <option value="all">All Users</option>
+          {% for u in all_users %}
+            <option value="{{ u.pk }}">{{ u.get_full_name }} ({{ u.email }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;">TYPE</label>
+        <select name="notif_type"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f8fafc;">
+          <option value="general">General</option>
+          <option value="booking_confirmed">Booking Confirmed</option>
+          <option value="payment_received">Payment Received</option>
+          <option value="service_completed">Service Completed</option>
+          <option value="booking_cancelled">Booking Cancelled</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;">TITLE</label>
+        <input type="text" name="title" placeholder="Notification title" required
+          style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f8fafc;"/>
+      </div>
+
+      <div style="margin-bottom:22px;">
+        <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;">MESSAGE</label>
+        <textarea name="message" rows="3" placeholder="Write your message..." required
+          style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;background:#f8fafc;"></textarea>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e5e7eb;padding-top:18px;">
+        <button type="button" onclick="closeNotifModal()"
+          style="padding:9px 22px;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;font-weight:500;color:#374151;">
+          Cancel
+        </button>
+        <button type="submit"
+          style="padding:9px 22px;background:#e8560a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+          <i class="fas fa-paper-plane"></i> Send
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+/* ── Send Notification modal ─────────────────────────────── */
+function openNotifModal()  { document.getElementById('notifModal').classList.add('is-open'); document.body.style.overflow='hidden'; }
+function closeNotifModal() { document.getElementById('notifModal').classList.remove('is-open'); document.body.style.overflow=''; }
+document.getElementById('notifModal').addEventListener('click', function(e){ if(e.target===this) closeNotifModal(); });
+
+/* ── AJAX Mark Single Read ───────────────────────────────── */
+function markRead(id, url) {
+  var btn = document.getElementById('read-btn-' + id);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+
+  var form = new FormData();
+  form.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  fetch(url, { method: 'POST', body: form })
+    .then(function(res) {
+      if (res.ok || res.redirected) {
+        var card = document.getElementById('notif-' + id);
+        if (card) {
+          // Fade + slide out
+          card.style.opacity    = '0';
+          card.style.transform  = 'translateX(30px)';
+          card.style.overflow   = 'hidden';
+          card.dataset.read     = 'true';
+
+          setTimeout(function() {
+            card.style.maxHeight  = card.offsetHeight + 'px';
+            card.style.transition = 'max-height 0.3s, margin 0.3s, padding 0.3s, opacity 0.35s, transform 0.35s';
+            setTimeout(function() {
+              card.style.maxHeight    = '0';
+              card.style.marginBottom = '0';
+              card.style.paddingTop   = '0';
+              card.style.paddingBottom= '0';
+            }, 50);
+            setTimeout(function() {
+              card.remove();
+              updateUnreadCount(-1);
+              checkEmpty();
+            }, 380);
+          }, 350);
+        }
+      }
+    })
+    .catch(function() {
+      // fallback — full page reload
+      window.location.reload();
+    });
+}
+
+/* ── Update the unread stat counter ─────────────────────── */
+function updateUnreadCount(delta) {
+  var el = document.getElementById('unreadStatCount');
+  var b  = document.getElementById('badge-unread');
+  if (el) {
+    var cur = parseInt(el.textContent) + delta;
+    if (cur < 0) cur = 0;
+    el.textContent = cur;
+    if (b) b.textContent = cur;
+  }
+}
+
+/* ── Show empty state if no cards remain ─────────────────── */
+function checkEmpty() {
+  var list  = document.getElementById('notifList');
+  var cards = list.querySelectorAll('.notif-card');
+  var visible = Array.from(cards).filter(function(c) {
+    return c.style.opacity !== '0';
+  });
+  if (visible.length === 0) {
+    var empty = document.getElementById('emptyState');
+    if (!empty) {
+      empty = document.createElement('div');
+      empty.id = 'emptyState';
+      empty.style.cssText = 'text-align:center;padding:48px 20px;color:#9ca3af;';
+      empty.innerHTML = '<i class="fas fa-bell-slash" style="font-size:32px;opacity:0.3;display:block;margin-bottom:10px;"></i>No notifications yet.';
+      list.appendChild(empty);
+    }
+  }
+}
+
+/* ── Filter tabs: All / Unread ───────────────────────────── */
+var currentFilter = 'all';
+
+function filterNotifs(filter) {
+  currentFilter = filter;
+
+  var tabAll    = document.getElementById('tab-all');
+  var tabUnread = document.getElementById('tab-unread');
+  var cards     = document.querySelectorAll('.notif-card');
+
+  // Style active tab
+  var activeStyle   = 'background:#fff8f5;color:#e8560a;border-bottom:2px solid #e8560a;';
+  var inactiveStyle = 'background:transparent;color:#6b7280;border-bottom:2px solid transparent;';
+
+  if (filter === 'all') {
+    tabAll.style.cssText    += activeStyle;
+    tabUnread.style.cssText += inactiveStyle;
+    cards.forEach(function(c) { c.style.display = ''; });
+  } else {
+    tabAll.style.cssText    += inactiveStyle;
+    tabUnread.style.cssText += activeStyle;
+    cards.forEach(function(c) {
+      c.style.display = (c.dataset.read === 'true') ? 'none' : '';
+    });
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeNotifModal();
+});
+</script>
+{% endblock %}
+
+{% endblock %}

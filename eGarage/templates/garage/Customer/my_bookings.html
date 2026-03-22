@@ -1,0 +1,102 @@
+{% extends "garage/Customer/base.html" %}
+{% load static %}
+
+{% block page_title %}My Bookings{% endblock %}
+{% block breadcrumb %}My Bookings{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">My Bookings</h1>
+    <p class="section-sub">All your current and upcoming appointments.</p>
+  </div>
+  <a href="{% url 'book_service' %}" class="btn-primary">
+    <i class="fas fa-plus"></i> New Booking
+  </a>
+</div>
+
+<!-- STATUS FILTER TABS -->
+<div class="filter-tabs">
+  <a href="?status=all"         class="ftab {% if status == 'all' or not status %}active{% endif %}">All</a>
+  <a href="?status=pending"     class="ftab {% if status == 'pending' %}active{% endif %}">Pending</a>
+  <a href="?status=confirmed"   class="ftab {% if status == 'confirmed' %}active{% endif %}">Confirmed</a>
+  <a href="?status=in_progress" class="ftab {% if status == 'in_progress' %}active{% endif %}">In Progress</a>
+  <a href="?status=completed"   class="ftab {% if status == 'completed' %}active{% endif %}">Completed</a>
+  <a href="?status=cancelled"   class="ftab {% if status == 'cancelled' %}active{% endif %}">Cancelled</a>
+</div>
+
+<!-- BOOKINGS LIST -->
+<div class="booking-list full">
+  {% for booking in bookings %}
+  <div class="booking-item-full">
+    <div class="booking-icon {{ booking.bookingStatus }}">
+      <i class="fas fa-wrench"></i>
+    </div>
+    <div class="booking-info">
+      <span class="booking-service">{{ booking.service.serviceName }}</span>
+      <span class="booking-provider">
+        <i class="fas fa-store"></i> {{ booking.provider.garageName }}
+        &nbsp;·&nbsp;
+        <i class="fas fa-tag"></i> #BK{{ booking.bookingId }}
+      </span>
+      <div class="booking-meta">
+        <span><i class="fas fa-calendar"></i> {{ booking.bookingDate|date:"d M Y" }}</span>
+        {% if booking.bookingTime %}
+        <span><i class="fas fa-clock"></i> {{ booking.bookingTime }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="booking-right">
+      <span class="badge {{ booking.bookingStatus }}">{{ booking.get_bookingStatus_display }}</span>
+      <span class="booking-amount">₹{{ booking.service.servicePrice }}</span>
+      <div class="booking-actions">
+        {% if booking.bookingStatus in 'pending,confirmed' %}
+        <form method="POST" action="{% url 'cancel_booking' booking.bookingId %}" style="display:inline"
+              onsubmit="return confirm('Cancel this booking?')">
+          {% csrf_token %}
+          <button type="submit" class="btn-danger-sm">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        </form>
+        {% endif %}
+        {% if booking.bookingStatus == 'completed' %}
+        <a href="{% url 'service_history' %}" class="btn-outline-sm">
+          <i class="fas fa-star"></i> Review
+        </a>
+        {% endif %}
+        {% if booking.bookingStatus == 'cancelled' %}
+        <a href="{% url 'book_service' %}" class="btn-outline-sm">
+          <i class="fas fa-redo"></i> Rebook
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state">
+    <i class="fas fa-calendar-xmark"></i>
+    <p>No bookings found. <a href="{% url 'book_service' %}">Book a service now!</a></p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- PAGINATION -->
+{% if bookings.has_other_pages %}
+<div class="pagination">
+  {% if bookings.has_previous %}
+  <a href="?status={{ status }}&page={{ bookings.previous_page_number }}" class="page-btn">
+    <i class="fas fa-chevron-left"></i>
+  </a>
+  {% endif %}
+  {% for num in bookings.paginator.page_range %}
+  <a href="?status={{ status }}&page={{ num }}"
+     class="page-btn {% if bookings.number == num %}active{% endif %}">{{ num }}</a>
+  {% endfor %}
+  {% if bookings.has_next %}
+  <a href="?status={{ status }}&page={{ bookings.next_page_number }}" class="page-btn">
+    <i class="fas fa-chevron-right"></i>
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "garage/Admin/base.html" %}
+{% block page_title %}Invoices{% endblock %}
+{% block breadcrumb %}Invoices{% endblock %}
+{% block content %}
+<section class="dash-section active" id="sec-invoices">
+  <div class="section-header">
+    <div><h1 class="section-title">Invoices</h1>
+    <p class="section-sub">Generated invoices for completed bookings.</p></div>
+  </div>
+  <div class="table-card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Invoice No.</th><th>Booking</th><th>Customer</th><th>Date</th><th>Service Amount</th><th>Tax</th><th>Discount</th><th>Total</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td><strong>INV-{{ inv.created_at|date:"Y" }}-{{ inv.id|stringformat:"03d" }}</strong></td>
+            <td>#BK{{ inv.booking.id }}</td>
+            <td>{{ inv.booking.customer.get_full_name }}</td>
+            <td>{{ inv.created_at|date:"d M Y" }}</td>
+            <td>₹{{ inv.service_amount }}</td>
+            <td>₹{{ inv.tax_amount }}</td>
+            <td>₹{{ inv.discount_amount }}</td>
+            <td><strong>₹{{ inv.total_amount }}</strong></td>
+            <td>
+              <a href="{% url 'admin_invoice_download' inv.id %}" class="act-btn view">
+                <i class="fas fa-download"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" style="text-align:center;color:var(--text-muted)">No invoices found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer"><span class="table-info">Showing {{ invoices|length }} invoices</span></div>
+  </div>
+</section>
+{% endblock %}

@@ -17,7 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from . import views
+
 urlpatterns = [
+    path('',views.home, name='home'),
     path('admin/', admin.site.urls),
     path('core/', include('core.urls')),  # Include the URLs from the core app
     path('garage/',include('garage.urls')), # Include the URLS from the garage app

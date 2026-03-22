@@ -1,0 +1,111 @@
+{% extends "garage/Customer/base.html" %}
+{% load static %}
+
+{% block page_title %}Home{% endblock %}
+{% block breadcrumb %}Home{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">Welcome back, {{ user.first_name }}!</h1>
+    <p class="section-sub">Here's a snapshot of your E-Garage account.</p>
+  </div>
+  <a href="{% url 'book_service' %}" class="btn-primary">
+    <i class="fas fa-plus"></i> Book a Service
+  </a>
+</div>
+
+<!-- STAT CARDS -->
+<div class="stats-grid">
+  <div class="stat-card" style="--accent:#e8560a">
+    <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+    <div>
+      <span class="stat-label">Total Bookings</span>
+      <span class="stat-value">{{ total_bookings|default:0 }}</span>
+    </div>
+  </div>
+  <div class="stat-card" style="--accent:#16a34a">
+    <div class="stat-icon" style="background:#f0fdf4;color:#16a34a"><i class="fas fa-check-circle"></i></div>
+    <div>
+      <span class="stat-label">Completed</span>
+      <span class="stat-value">{{ completed_bookings|default:0 }}</span>
+    </div>
+  </div>
+  <div class="stat-card" style="--accent:#f9a825">
+    <div class="stat-icon" style="background:#fffbeb;color:#f9a825"><i class="fas fa-clock"></i></div>
+    <div>
+      <span class="stat-label">Upcoming</span>
+      <span class="stat-value">{{ upcoming_bookings|default:0 }}</span>
+    </div>
+  </div>
+  <div class="stat-card" style="--accent:#1e3a5f">
+    <div class="stat-icon" style="background:#e8f0fb;color:#1e3a5f"><i class="fas fa-indian-rupee-sign"></i></div>
+    <div>
+      <span class="stat-label">Total Spent</span>
+      <span class="stat-value">₹{{ total_spent|default:0 }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="home-grid">
+
+  <!-- Recent Bookings -->
+  <div class="card">
+    <div class="card-header">
+      <h3>Recent Bookings</h3>
+      <a href="{% url 'my_bookings' %}" class="btn-link">View All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="booking-list">
+      {% for booking in recent_bookings %}
+      <div class="booking-item">
+        <div class="booking-icon {{ booking.bookingStatus }}">
+          <i class="fas fa-wrench"></i>
+        </div>
+        <div class="booking-info">
+          <span class="booking-service">{{ booking.service.serviceName }}</span>
+          <span class="booking-provider">{{ booking.provider.garageName }}</span>
+        </div>
+        <div class="booking-right">
+          <span class="badge {{ booking.bookingStatus }}">{{ booking.get_bookingStatus_display }}</span>
+          <span class="booking-date">{{ booking.bookingDate|date:"d M Y" }}</span>
+          <span class="booking-amount">₹{{ booking.service.servicePrice }}</span>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <i class="fas fa-calendar-xmark"></i>
+        <p>No bookings yet. <a href="{% url 'book_service' %}">Book your first service!</a></p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Vehicle Card -->
+  {% if customer_profile %}
+  <div class="vehicle-card">
+    <div class="vehicle-banner">
+      <div class="vehicle-icon"><i class="fas fa-car"></i></div>
+      <span class="vehicle-number">{{ customer_profile.vehicleNumber }}</span>
+      <span class="vehicle-model">{{ customer_profile.vehicleModel }} · {{ customer_profile.vehicleYear }}</span>
+    </div>
+    <div class="vehicle-details">
+      <div class="veh-row"><span>Type</span><span>{{ customer_profile.get_vehicleType_display }}</span></div>
+      {% if customer_profile.vehicleColor %}
+      <div class="veh-row"><span>Color</span><span>{{ customer_profile.vehicleColor }}</span></div>
+      {% endif %}
+      <div class="veh-row"><span>Year</span><span>{{ customer_profile.vehicleYear }}</span></div>
+    </div>
+    <a href="{% url 'my_vehicle' %}" class="btn-primary btn-full">
+      <i class="fas fa-pen"></i> Edit Vehicle
+    </a>
+  </div>
+  {% else %}
+  <div class="card card-empty">
+    <i class="fas fa-car" style="font-size:2rem;color:var(--text-light);margin-bottom:10px"></i>
+    <p>No vehicle added yet.</p>
+    <a href="{% url 'my_vehicle' %}" class="btn-primary" style="margin-top:10px">Add Vehicle</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

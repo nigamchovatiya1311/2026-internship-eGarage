@@ -1,0 +1,50 @@
+{% extends "garage/Admin/base.html" %}
+{% block page_title %}Customer Profiles{% endblock %}
+{% block breadcrumb %}Customer Profiles{% endblock %}
+{% block content %}
+<section class="dash-section active" id="sec-customers">
+  <div class="section-header">
+    <div><h1 class="section-title">Customer Profiles</h1>
+    <p class="section-sub">View customer vehicle details.</p></div>
+  </div>
+  <div class="filter-bar">
+    <div class="filter-tabs">
+      <button class="ftab active" onclick="filterTab(this,'all','customersTable')">All</button>
+      <button class="ftab" onclick="filterTab(this,'car','customersTable')">Cars</button>
+      <button class="ftab" onclick="filterTab(this,'bike','customersTable')">Bikes</button>
+    </div>
+    <div class="filter-right">
+      <div class="search-input"><i class="fas fa-search"></i>
+      <input type="text" placeholder="Search by vehicle..." oninput="searchTable(this,'customersTable')"/></div>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="table-wrap">
+      <table class="data-table" id="customersTable">
+        <thead><tr><th>Customer</th><th>Vehicle Type</th><th>Vehicle Number</th><th>Model</th><th>Year</th><th>Color</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for profile in customer_profiles %}
+          <tr data-role="{{ profile.vehicle_type }}">
+            <td><div class="user-cell"><div class="u-avatar" style="background:#e8560a">{{ profile.user.first_name|first }}</div><span>{{ profile.user.get_full_name }}</span></div></td>
+            <td>
+              {% if profile.vehicle_type == 'car' %}<span class="vehicle-tag car"><i class="fas fa-car"></i> Car</span>
+              {% else %}<span class="vehicle-tag bike"><i class="fas fa-motorcycle"></i> Bike</span>{% endif %}
+            </td>
+            <td><strong>{{ profile.vehicle_number }}</strong></td>
+            <td>{{ profile.vehicle_model }}</td>
+            <td>{{ profile.vehicle_year }}</td>
+            <td>{{ profile.vehicle_color }}</td>
+            <td><div class="action-btns">
+              <button class="act-btn view" onclick="showCustomerModal('{{ profile.user.get_full_name }}','{{ profile.vehicle_type }}','{{ profile.vehicle_number }}','{{ profile.vehicle_model }}','{{ profile.vehicle_year }}','{{ profile.vehicle_color }}')"><i class="fas fa-eye"></i></button>
+            </div></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">No customer profiles found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer"><span class="table-info">Showing {{ customer_profiles|length }} profiles</span></div>
+  </div>
+</section>
+{% endblock %}

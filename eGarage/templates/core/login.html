@@ -2,33 +2,295 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up</title>
-    <link rel="stylesheet" href="{% static 'css/signup.css' %}">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Garage | Login</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 </head>
 <body>
 
-<div class="signup-container">
-        <div class="signup-card">
-            <h2>Login Account</h2>
-            
-            <form method="POST">
-                {% csrf_token %}
-                
-                <div class="form-fields">
-                    {{ form.as_p }}
-                </div>
+  <div class="bg-blob blob1"></div>
+  <div class="bg-blob blob2"></div>
+  <div class="bg-blob blob3"></div>
 
-                <button type="submit" class="signup-btn">Login</button>
-            </form>     
+  <a href="{% url 'home' %}" class="back-home">
+    <i class="fas fa-arrow-left"></i> Back to Home
+  </a>
 
+  <div class="auth-wrapper">
+
+    <!-- ===== LEFT PANEL ===== -->
+    <div class="auth-left">
+      <div class="auth-left-inner">
+
+        <a href="{% url 'home' %}" class="auth-logo">
+          <div class="auth-logo-icon"><i class="fas fa-wrench"></i></div>
+          <div>
+            <span class="auth-logo-main">E-GARAGE</span>
+            <span class="auth-logo-sub">Auto Service Center</span>
+          </div>
+        </a>
+
+        <div class="auth-illustration">
+          <div class="car-icon-wrap">
+            <i class="fas fa-car-side"></i>
+          </div>
+          <h2>Welcome Back!</h2>
+          <p>Login to manage your bookings, track your car service status, and view your complete service history.</p>
+        </div>
+
+        <div class="auth-features">
+          <div class="auth-feature">
+            <div class="af-icon"><i class="fas fa-calendar-check"></i></div>
+            <span>Manage Appointments</span>
+          </div>
+          <div class="auth-feature">
+            <div class="af-icon"><i class="fas fa-history"></i></div>
+            <span>Service History</span>
+          </div>
+          <div class="auth-feature">
+            <div class="af-icon"><i class="fas fa-bell"></i></div>
+            <span>Live Updates</span>
+          </div>
+          <div class="auth-feature">
+            <div class="af-icon"><i class="fas fa-shield-halved"></i></div>
+            <span>Secure Account</span>
+          </div>
+        </div>
+
+      </div>
     </div>
-</div>
 
-</form>
+    <!-- ===== RIGHT PANEL ===== -->
+    <div class="auth-right">
+      <div class="auth-form-box">
 
+        <!-- Header -->
+        <div class="form-header">
+          <div class="form-header-icon">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <h2>Login to Your Account</h2>
+          <p>Enter your credentials to continue</p>
+        </div>
 
+        <!-- Django flash messages -->
+        {% if messages %}
+          <div class="django-messages">
+            {% for message in messages %}
+              <div class="dj-alert dj-alert-{{ message.tags }}">
+                <i class="fas {% if message.tags == 'error' %}fa-circle-xmark{% else %}fa-circle-check{% endif %}"></i>
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
 
+        <!-- Non-field errors (wrong email/password combo) -->
+        {% if form.non_field_errors %}
+          <div class="dj-alert dj-alert-error">
+            <i class="fas fa-circle-xmark"></i>
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- FORM: method POST → Django authenticates → stores session in DB -->
+        <form method="POST" action="" class="auth-form" novalidate>
+          {% csrf_token %}
+
+          <!-- EMAIL FIELD -->
+          <div class="form-group {% if form.email.errors %}has-error{% endif %}">
+            <label for="{{ form.email.id_for_label }}">
+              <i class="fas fa-envelope"></i> Email Address
+            </label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <span class="field-error">
+                <i class="fas fa-circle-exclamation"></i>
+                {% for e in form.email.errors %}{{ e }}{% endfor %}
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- PASSWORD FIELD -->
+          <div class="form-group {% if form.password.errors %}has-error{% endif %}">
+            <div class="label-row">
+              <label for="{{ form.password.id_for_label }}">
+                <i class="fas fa-lock"></i> Password
+              </label>
+              {% comment %} <a href="{% url 'password_reset' %}" class="forgot-link">Forgot password?</a> {% endcomment %}
+            </div>
+            <div class="input-icon-wrap">
+              {{ form.password }}
+              <button type="button" class="toggle-pw"
+                onclick="togglePw('{{ form.password.id_for_label }}', this)" tabindex="-1">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            {% if form.password.errors %}
+              <span class="field-error">
+                <i class="fas fa-circle-exclamation"></i>
+                {% for e in form.password.errors %}{{ e }}{% endfor %}
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- REMEMBER ME -->
+          {% comment %} <div class="form-extras">
+            <label class="check-label">
+              <input type="checkbox" name="remember_me" id="rememberMe">
+              <span class="checkmark"></span>
+              Remember me for 30 days
+            </label>
+          </div> {% endcomment %}
+
+          <!-- SUBMIT -->
+          <button type="submit" class="btn-submit">
+            <span>Login</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+
+        </form>
+
+        <div class="auth-divider"><span>or</span></div>
+
+        <p class="switch-text">
+          Don't have an account?
+          <a href="{% url 'signup' %}" class="switch-link">Create Account</a>
+        </p>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ── Show / Hide Password ── */
+    function togglePw(fieldId, btn) {
+      const field = document.getElementById(fieldId);
+      const icon  = btn.querySelector('i');
+      if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+      } else {
+        field.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+      const emailEl = document.querySelector('[name="email"]');
+      const pwEl    = document.querySelector('[name="password"]');
+
+      /* Placeholders */
+      if (emailEl) emailEl.placeholder = 'you@example.com';
+      if (pwEl)    pwEl.placeholder    = 'Enter your password';
+
+      /* ── Helper: show inline error under a field ── */
+      function showError(group, msg) {
+        group.classList.add('has-error');
+        let err = group.querySelector('.field-error');
+        if (!err) {
+          err = document.createElement('span');
+          err.className = 'field-error';
+          group.appendChild(err);
+        }
+        err.innerHTML = `<i class="fas fa-circle-exclamation"></i> ${msg}`;
+      }
+
+      /* ── Helper: clear error ── */
+      function clearError(group) {
+        group.classList.remove('has-error');
+        const err = group.querySelector('.field-error');
+        if (err) err.innerHTML = '';
+      }
+
+      /* ── Clear error as user types ── */
+      document.querySelectorAll('.form-group input[type="email"], .form-group input[type="text"], .form-group input[type="password"]').forEach(input => {
+        input.addEventListener('input', () => clearError(input.closest('.form-group')));
+      });
+
+      /* ── Validate email on blur (when user leaves field) ── */
+      if (emailEl) {
+        emailEl.addEventListener('blur', () => {
+          const group = emailEl.closest('.form-group');
+          const val   = emailEl.value.trim();
+          if (!val) {
+            showError(group, 'Email address is required.');
+          } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+            showError(group, 'Please enter a valid email address.');
+          } else {
+            clearError(group);
+          }
+        });
+      }
+
+      /* ── Validate password on blur ── */
+      if (pwEl) {
+        pwEl.addEventListener('blur', () => {
+          const group = pwEl.closest('.form-group');
+          if (!pwEl.value) {
+            showError(group, 'Password is required.');
+          } else if (pwEl.value.length < 6) {
+            showError(group, 'Password must be at least 6 characters.');
+          } else {
+            clearError(group);
+          }
+        });
+      }
+
+      /* ── Block submit if fields are blank or invalid ── */
+      document.querySelector('.auth-form').addEventListener('submit', function (e) {
+        let valid = true;
+
+        /* Validate email */
+        if (emailEl) {
+          const group = emailEl.closest('.form-group');
+          const val   = emailEl.value.trim();
+          if (!val) {
+            showError(group, 'Email address is required.');
+            valid = false;
+          } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+            showError(group, 'Please enter a valid email address.');
+            valid = false;
+          } else {
+            clearError(group);
+          }
+        }
+
+        /* Validate password */
+        if (pwEl) {
+          const group = pwEl.closest('.form-group');
+          if (!pwEl.value) {
+            showError(group, 'Password is required.');
+            valid = false;
+          } else if (pwEl.value.length < 6) {
+            showError(group, 'Password must be at least 6 characters.');
+            valid = false;
+          } else {
+            clearError(group);
+          }
+        }
+
+        if (!valid) {
+          e.preventDefault();
+          /* Shake animation on the card */
+          const box = document.querySelector('.auth-form-box');
+          box.classList.add('shake');
+          setTimeout(() => box.classList.remove('shake'), 500);
+          return;
+        }
+
+        /* Show loading spinner on button while Django processes */
+        const btn = this.querySelector('.btn-submit');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+        btn.disabled  = true;
+      });
+
+    });
+  </script>
 </body>
 </html>

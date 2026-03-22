@@ -1,0 +1,278 @@
+{% extends "garage/Admin/base.html" %}
+{% block page_title %}Service Providers{% endblock %}
+{% block breadcrumb %}Service Providers{% endblock %}
+{% block content %}
+<section class="dash-section active" id="sec-providers">
+  <div class="section-header">
+    <div><h1 class="section-title">Service Providers</h1>
+    <p class="section-sub">Approve, view, or remove service providers.</p></div>
+  </div>
+
+  <!-- STATS — ids so JS can update them live -->
+  <div class="stats-grid four-col">
+    <div class="mini-stat" style="--c:#16a34a"><i class="fas fa-check-circle"></i><div><strong id="stat-approved">{{ approved_count }}</strong><span>Approved</span></div></div>
+    <div class="mini-stat" style="--c:#f9a825"><i class="fas fa-clock"></i><div><strong id="stat-pending">{{ pending_count }}</strong><span>Pending</span></div></div>
+    <div class="mini-stat" style="--c:#dc2626"><i class="fas fa-times-circle"></i><div><strong id="stat-rejected">{{ rejected_count }}</strong><span>Rejected</span></div></div>
+    <div class="mini-stat" style="--c:#3b82f6"><i class="fas fa-star"></i><div><strong id="stat-rating">{{ avg_rating }}</strong><span>Avg Rating</span></div></div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-tabs">
+      <button class="ftab active" onclick="filterTab(this,'all','providersTable')">All</button>
+      <button class="ftab" onclick="filterTab(this,'approved','providersTable')">Approved</button>
+      <button class="ftab" onclick="filterTab(this,'pending','providersTable')">Pending</button>
+      <button class="ftab" onclick="filterTab(this,'rejected','providersTable')">Rejected</button>
+    </div>
+    <div class="filter-right">
+      <div class="search-input"><i class="fas fa-search"></i>
+      <input type="text" placeholder="Search providers..." oninput="searchTable(this,'providersTable')"/></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-wrap">
+      <table class="data-table" id="providersTable">
+        <thead>
+          <tr><th>Provider</th><th>Garage Name</th><th>Location</th><th>Hours</th><th>Rating</th><th>Approval</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for p in providers %}
+          <tr data-role="{{ p.approval_status }}" id="provider-row-{{ p.providerId }}">
+            <td>
+              <div class="user-cell">
+                <div class="u-avatar" style="background:#16a34a">{{ p.user.first_name|first }}</div>
+                <span>{{ p.user.get_full_name }}</span>
+              </div>
+            </td>
+            <td>{{ p.garage_name }}</td>
+            <td><i class="fas fa-map-marker-alt" style="color:var(--primary);font-size:0.75rem"></i> {{ p.city }}</td>
+            <td>{{ p.working_hours }}</td>
+            <td><span class="star-rating">{{ p.avg_rating|default:"—" }}</span></td>
+            <td id="provider-badge-{{ p.providerId }}">
+              {% if p.approval_status == 'approved' %}
+                <span class="badge success">Approved</span>
+              {% elif p.approval_status == 'pending' %}
+                <span class="badge warning">Pending</span>
+              {% else %}
+                <span class="badge danger">Rejected</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-btns" id="provider-actions-{{ p.providerId }}">
+                <!-- View button — reads live data from row, not hardcoded strings -->
+                <button class="act-btn view"
+                  data-id="{{ p.providerId }}"
+                  data-name="{{ p.garage_name|escapejs }}"
+                  data-city="{{ p.city|escapejs }}"
+                  data-hours="{{ p.working_hours|escapejs }}"
+                  data-rating="{{ p.avg_rating|default:'—' }}"
+                  data-status="{{ p.approval_status }}"
+                  onclick="showProviderModalFromRow(this)">
+                  <i class="fas fa-eye"></i>
+                </button>
+
+                {% if p.approval_status == 'pending' %}
+                <button class="act-btn approve"
+                  id="approve-btn-{{ p.providerId }}"
+                  data-url="{% url 'approve_provider' p.providerId %}"
+                  data-id="{{ p.providerId }}"
+                  data-name="{{ p.garage_name|escapejs }}"
+                  onclick="approveProviderAjax(this)">
+                  <i class="fas fa-check"></i>
+                </button>
+                {% endif %}
+
+                <button class="act-btn del"
+                  data-url="{% url 'reject_provider' p.providerId %}"
+                  data-id="{{ p.providerId }}"
+                  data-name="{{ p.garage_name|escapejs }}"
+                  onclick="deleteProviderConfirm(this)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">No providers found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="table-info">Showing {{ providers|length }} providers</span>
+    </div>
+  </div>
+</section>
+
+<!-- DELETE CONFIRM MODAL -->
+<div id="providerDeleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:32px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2)">
+    <i class="fas fa-trash-alt" style="font-size:2.2rem;color:#dc2626;margin-bottom:14px;display:block"></i>
+    <h3 style="margin-bottom:6px;font-size:1.1rem;font-weight:700" id="deleteProviderMsg">Delete this provider?</h3>
+    <p style="color:#6b7280;font-size:0.85rem;margin-bottom:22px">This action cannot be undone.</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="closeDeleteModal()" style="padding:9px 22px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer;font-weight:600">Cancel</button>
+      <button id="confirmDeleteBtn" style="padding:9px 22px;background:#dc2626;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Delete</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function getCookie(n) {
+  let v = null;
+  document.cookie.split(';').forEach(c => {
+    c = c.trim();
+    if (c.startsWith(n + '=')) v = decodeURIComponent(c.slice(n.length + 1));
+  });
+  return v;
+}
+
+// ── STAT COUNTERS (live update) ───────────────────────────────
+function adjustStat(id, delta) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = Math.max(0, (parseInt(el.textContent) || 0) + delta);
+}
+
+// ── VIEW MODAL — reads live data-* from the button's row ──────
+function showProviderModalFromRow(btn) {
+  const id     = btn.dataset.id;
+  const name   = btn.dataset.name;
+  const city   = btn.dataset.city;
+  const hours  = btn.dataset.hours;
+  const rating = btn.dataset.rating;
+  // Read current status live from the badge cell (not stale data-status)
+  const badgeCell = document.getElementById('provider-badge-' + id);
+  let approval = btn.dataset.status;
+  if (badgeCell) {
+    const badge = badgeCell.querySelector('.badge');
+    if (badge) approval = badge.textContent.trim().toLowerCase();
+  }
+  // Build status badge colour
+  const sc = approval === 'approved' ? 'success' : approval === 'rejected' ? 'danger' : 'warning';
+  const approvalLabel = approval.charAt(0).toUpperCase() + approval.slice(1);
+
+  document.getElementById('providerModalBody').innerHTML = `
+    <div class="modal-detail-row"><span>Garage Name</span><span>${name}</span></div>
+    <div class="modal-detail-row"><span>Location</span><span>${city}</span></div>
+    <div class="modal-detail-row"><span>Operating Hours</span><span>${hours}</span></div>
+    <div class="modal-detail-row"><span>Rating</span><span>${rating === '—' ? '—' : '⭐ ' + rating}</span></div>
+    <div class="modal-detail-row"><span>Approval Status</span><span><span class="badge ${sc}">${approvalLabel}</span></span></div>`;
+  openModal('providerModal');
+}
+
+// ── APPROVE ───────────────────────────────────────────────────
+function approveProviderAjax(btn) {
+  const url  = btn.dataset.url;
+  const id   = btn.dataset.id;
+  const name = btn.dataset.name;
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken'),
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(r => {
+    if (r.ok || r.redirected) {
+      // 1. Update badge cell
+      const badge = document.getElementById('provider-badge-' + id);
+      if (badge) badge.innerHTML = '<span class="badge success">Approved</span>';
+
+      // 2. Update view-button's data-status so modal shows correct status
+      const viewBtn = document.querySelector(`#provider-row-${id} .act-btn.view`);
+      if (viewBtn) viewBtn.dataset.status = 'approved';
+
+      // 3. Remove approve button
+      btn.remove();
+
+      // 4. Update row filter attribute
+      const row = document.getElementById('provider-row-' + id);
+      if (row) row.dataset.role = 'approved';
+
+      // 5. Update stat counters
+      adjustStat('stat-pending', -1);
+      adjustStat('stat-approved', +1);
+
+      showToast(name + ' approved successfully!', 'success');
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check"></i>';
+      showToast('Approval failed. Please try again.', 'danger');
+    }
+  })
+  .catch(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    showToast('Network error. Please try again.', 'danger');
+  });
+}
+
+// ── DELETE ────────────────────────────────────────────────────
+let _deleteUrl = null;
+let _deleteId  = null;
+let _deleteStatus = null;
+
+function deleteProviderConfirm(btn) {
+  _deleteUrl    = btn.dataset.url;
+  _deleteId     = btn.dataset.id;
+  _deleteStatus = document.getElementById('provider-row-' + btn.dataset.id)?.dataset.role || 'pending';
+  const name    = btn.dataset.name;
+  document.getElementById('deleteProviderMsg').innerHTML =
+    'Delete <strong>' + name + '</strong>? This cannot be undone.';
+  document.getElementById('providerDeleteModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+  document.getElementById('providerDeleteModal').style.display = 'none';
+  _deleteUrl = null; _deleteId = null; _deleteStatus = null;
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+  if (!_deleteUrl) return;
+  const id     = _deleteId;
+  const url    = _deleteUrl;
+  const status = _deleteStatus;
+  closeDeleteModal();
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken'),
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(r => {
+    if (r.ok || r.redirected) {
+      // Fade out and remove row
+      const row = document.getElementById('provider-row-' + id);
+      if (row) {
+        row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(20px)';
+        setTimeout(() => row.remove(), 320);
+      }
+      // Update correct stat counter based on deleted row's status
+      if (status === 'pending')  adjustStat('stat-pending',  -1);
+      if (status === 'approved') adjustStat('stat-approved', -1);
+      if (status === 'rejected') adjustStat('stat-rejected', -1);
+
+      showToast('Provider removed successfully.', 'success');
+    } else {
+      showToast('Delete failed. Please try again.', 'danger');
+    }
+  })
+  .catch(() => showToast('Network error. Please try again.', 'danger'));
+});
+
+// Close delete modal on backdrop click
+document.getElementById('providerDeleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDeleteModal();
+});
+</script>
+{% endblock %}

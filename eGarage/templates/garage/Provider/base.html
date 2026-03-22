@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Garage | {% block page_title %}Provider Dashboard{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/garage/provider/provider.css' %}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo">
+      <div class="logo-icon"><i class="fas fa-wrench"></i></div>
+      <div>
+        <span class="logo-main">E-GARAGE</span>
+        <span class="logo-sub">Provider Portal</span>
+      </div>
+    </div>
+    <button class="sb-close" id="sbClose"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- Garage Profile Card -->
+  <div class="sb-profile">
+    <div class="sb-avatar">
+      {{ provider.garageName|first|upper }}{% if provider.user.last_name %}{{ provider.user.last_name|first|upper }}{% endif %}
+    </div>
+    <span class="sb-garage">{{ provider.garageName }}</span>
+    <span class="sb-location"><i class="fas fa-map-marker-alt"></i> {{ provider.location }}</span>
+    <div class="sb-status-row">
+      <span class="sb-status {{ provider.approvalStatus }}">
+        <i class="fas fa-circle"></i>
+        {{ provider.get_approvalStatus_display }}
+      </span>
+    </div>
+    <div class="sb-rating">
+      <i class="fas fa-star"></i> {{ provider.rating }} · {{ total_reviews }} reviews
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sb-nav">
+    <div class="nav-lbl">Menu</div>
+
+    <a href="{% url 'provider_overview' %}" class="nav-item {% if active == 'overview' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-chart-pie"></i></div>
+      <span>Overview</span>
+    </a>
+
+    <a href="{% url 'provider_bookings' %}" class="nav-item {% if active == 'bookings' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-calendar-check"></i></div>
+      <span>Bookings</span>
+      {% if pending_bookings_count %}<span class="nav-badge new">{{ pending_bookings_count }}</span>{% endif %}
+    </a>
+
+    <a href="{% url 'provider_services' %}" class="nav-item {% if active == 'services' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-tags"></i></div>
+      <span>My Services</span>
+    </a>
+
+    <a href="{% url 'provider_reviews' %}" class="nav-item {% if active == 'reviews' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-star"></i></div>
+      <span>Reviews</span>
+    </a>
+
+    <a href="{% url 'provider_earnings' %}" class="nav-item {% if active == 'earnings' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-indian-rupee-sign"></i></div>
+      <span>Earnings</span>
+    </a>
+
+    <a href="{% url 'provider_notifications' %}" class="nav-item {% if active == 'notifications' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-bell"></i></div>
+      <span>Notifications</span>
+      {% if unread_notif_count %}<span class="nav-badge new">{{ unread_notif_count }}</span>{% endif %}
+    </a>
+
+    <a href="{% url 'provider_profile' %}" class="nav-item {% if active == 'profile' %}active{% endif %}">
+      <div class="nav-ic"><i class="fas fa-store"></i></div>
+      <span>Garage Profile</span>
+    </a>
+
+    <div class="nav-lbl">Account</div>
+    <a href="{% url 'provider_logout' %}" class="nav-item logout">
+      <div class="nav-ic"><i class="fas fa-right-from-bracket"></i></div>
+      <span>Logout</span>
+    </a>
+  </nav>
+</aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+
+<!-- ═══════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════ -->
+<main class="main-content">
+
+  <!-- TOP NAV -->
+  <header class="topnav">
+    <div class="topnav-left">
+      <button class="hamburger-btn" id="hamburgerBtn"><i class="fas fa-bars"></i></button>
+      <div class="breadcrumb">
+        <span class="bread-home"><i class="fas fa-house"></i></span>
+        <i class="fas fa-chevron-right bread-sep"></i>
+        <span class="bread-current">{% block breadcrumb %}Dashboard{% endblock %}</span>
+      </div>
+    </div>
+    <div class="topnav-right">
+      <a href="{% url 'provider_notifications' %}" class="topnav-btn">
+        <i class="fas fa-bell"></i>
+        {% if unread_notif_count %}<span class="notif-dot"></span>{% endif %}
+      </a>
+      <div class="topnav-avatar">
+        {{ provider.garageName|first|upper }}
+      </div>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <div class="page-content">
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}times-circle{% else %}exclamation-circle{% endif %}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+  </div>
+</main>
+
+<script src="{% static 'js/provider/provider.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

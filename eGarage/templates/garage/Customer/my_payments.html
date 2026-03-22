@@ -1,0 +1,85 @@
+{% extends "garage/Customer/base.html" %}
+{% load static %}
+
+{% block page_title %}Payments{% endblock %}
+{% block breadcrumb %}Payments{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">Payments</h1>
+    <p class="section-sub">Your transaction history and invoices.</p>
+  </div>
+</div>
+
+<!-- PAYMENT STAT CARDS -->
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card" style="--accent:#16a34a">
+    <div class="stat-icon" style="background:#f0fdf4;color:#16a34a"><i class="fas fa-circle-check"></i></div>
+    <div>
+      <span class="stat-label">Total Paid</span>
+      <span class="stat-value">₹{{ total_paid }}</span>
+    </div>
+  </div>
+  <div class="stat-card" style="--accent:#f9a825">
+    <div class="stat-icon" style="background:#fffbeb;color:#f9a825"><i class="fas fa-clock"></i></div>
+    <div>
+      <span class="stat-label">Pending</span>
+      <span class="stat-value">₹{{ total_pending }}</span>
+    </div>
+  </div>
+  <div class="stat-card" style="--accent:#3b82f6">
+    <div class="stat-icon" style="background:#eff6ff;color:#3b82f6"><i class="fas fa-rotate-left"></i></div>
+    <div>
+      <span class="stat-label">Refunded</span>
+      <span class="stat-value">₹{{ total_refund }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTION LIST -->
+<div class="card">
+  <div class="card-header"><h3>Transaction History</h3></div>
+  <div class="booking-list">
+    {% for payment in payments %}
+    <div class="booking-item">
+      <div class="booking-icon {{ payment.paymentStatus }}">
+        <i class="fas fa-{% if payment.paymentMethod == 'cash' %}money-bill{% elif payment.paymentMethod == 'card' %}credit-card{% else %}globe{% endif %}"></i>
+      </div>
+      <div class="booking-info">
+        <span class="booking-service">{{ payment.booking.service.serviceName }} — #BK{{ payment.booking.bookingId }}</span>
+        <span class="booking-provider">
+          {{ payment.get_paymentMethod_display }}
+          {% if payment.transactionId %} · {{ payment.transactionId }}{% endif %}
+        </span>
+        <span class="booking-date">{{ payment.paymentDate|date:"d M Y, h:i A" }}</span>
+      </div>
+      <div class="booking-right">
+        <span class="badge {{ payment.paymentStatus }}">{{ payment.get_paymentStatus_display }}</span>
+        <span class="booking-amount">₹{{ payment.amount }}</span>
+      </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+      <i class="fas fa-receipt"></i>
+      <p>No transactions yet.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- PAGINATION -->
+{% if payments.has_other_pages %}
+<div class="pagination">
+  {% if payments.has_previous %}
+  <a href="?page={{ payments.previous_page_number }}" class="page-btn"><i class="fas fa-chevron-left"></i></a>
+  {% endif %}
+  {% for num in payments.paginator.page_range %}
+  <a href="?page={{ num }}" class="page-btn {% if payments.number == num %}active{% endif %}">{{ num }}</a>
+  {% endfor %}
+  {% if payments.has_next %}
+  <a href="?page={{ payments.next_page_number }}" class="page-btn"><i class="fas fa-chevron-right"></i></a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
