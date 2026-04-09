@@ -22,7 +22,7 @@
           <tr>
             <td><strong>#PAY{{ pay.id|stringformat:"03d" }}</strong></td>
             <td>#BK{{ pay.booking.id }}</td>
-            <td>{{ pay.booking.customer.get_full_name }}</td>
+            <td>{{ pay.booking.customer.user.email }}</td>
             <td>₹{{ pay.amount }}</td>
             <td>
               {% if pay.method == 'cash' %}<span class="method-tag cash"><i class="fas fa-money-bill"></i> Cash</span>

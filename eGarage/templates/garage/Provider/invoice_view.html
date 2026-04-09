@@ -1,0 +1,190 @@
+{% extends "garage/Provider/base.html" %}
+{% block page_title %}Invoice {{ invoice.invoiceNumber }}{% endblock %}
+{% block breadcrumb %}Invoice {{ invoice.invoiceNumber }}{% endblock %}
+
+{% block content %}
+
+<style>
+  .inv-wrap { max-width: 720px; margin: 0 auto; }
+  .inv-paper {
+    background: var(--card-bg, #fff);
+    border: 0.5px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .inv-top {
+    background: #0f1923;
+    color: #fff;
+    padding: 28px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .inv-top .garage-name { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.5px; }
+  .inv-top .garage-addr { font-size: 0.78rem; opacity: 0.6; margin-top: 4px; }
+  .inv-top-right { text-align: right; }
+  .inv-top-right .inv-num { font-size: 1rem; font-weight: 600; color: #e8560a; }
+  .inv-top-right .inv-date { font-size: 0.78rem; opacity: 0.6; margin-top: 4px; }
+  .inv-body { padding: 28px 32px; }
+  .inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .inv-party-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light, #6b7280); font-weight: 600; margin-bottom: 6px; }
+  .inv-party-name { font-size: 0.95rem; font-weight: 700; }
+  .inv-party-detail { font-size: 0.8rem; color: var(--text-light, #6b7280); margin-top: 2px; }
+  .inv-divider { border: none; border-top: 0.5px solid var(--border, #e5e7eb); margin: 0 0 24px; }
+  .inv-items { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  .inv-items th { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light, #6b7280); padding: 8px 0; border-bottom: 0.5px solid var(--border, #e5e7eb); text-align: left; }
+  .inv-items th:last-child { text-align: right; }
+  .inv-items td { padding: 12px 0; font-size: 0.88rem; border-bottom: 0.5px solid var(--border, #e5e7eb); }
+  .inv-items td:last-child { text-align: right; font-weight: 600; }
+  .inv-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .inv-total-row { display: flex; gap: 48px; font-size: 0.85rem; }
+  .inv-total-row span:first-child { color: var(--text-light, #6b7280); }
+  .inv-total-row.grand { font-size: 1rem; font-weight: 700; color: #e8560a; border-top: 1.5px solid #e8560a; padding-top: 8px; margin-top: 4px; }
+  .inv-status-bar {
+    padding: 14px 32px;
+    background: var(--bg-light, #f9fafb);
+    border-top: 0.5px solid var(--border, #e5e7eb);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+  }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; }
+  .badge.completed, .badge.paid { background:#f0fdf4; color:#15803d; border:0.5px solid #86efac; }
+  .badge.pending   { background:#fffbeb; color:#92400e; border:0.5px solid #fcd34d; }
+  .badge.cancelled { background:#fef2f2; color:#991b1b; border:0.5px solid #fca5a5; }
+  .badge.warning   { background:#fffbeb; color:#92400e; border:0.5px solid #fcd34d; }
+  .inv-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+  .btn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 0.5px solid var(--border, #e5e7eb); background: var(--card-bg, #fff); font-size: 0.82rem; color: var(--text, #111); cursor: pointer; text-decoration: none; }
+  .btn-print { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; border: none; background: #7c3aed; color: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+  .btn-print:hover { background: #6d28d9; }
+
+  @media print {
+    .inv-actions, nav, .sidebar, .topbar, .section-header, .breadcrumb { display: none !important; }
+    .inv-wrap { max-width: 100%; }
+    .inv-paper { border: none; border-radius: 0; box-shadow: none; }
+    body { background: #fff !important; }
+  }
+</style>
+
+<div class="inv-wrap">
+
+  {% if not auto_print %}
+  <div class="inv-actions">
+    <a href="{% url 'provider_earnings' %}" class="btn-back">
+      <i class="fas fa-arrow-left"></i> Back to Earnings
+    </a>
+    <button class="btn-print" onclick="window.print()">
+      <i class="fas fa-print"></i> Print Invoice
+    </button>
+  </div>
+  {% endif %}
+
+  <div class="inv-paper">
+
+    <!-- Header -->
+    <div class="inv-top">
+      <div>
+        <div class="garage-name">{{ provider.garageName }}</div>
+        <div class="garage-addr">{{ provider.location }}</div>
+        <div class="garage-addr">{{ request.user.email }}</div>
+      </div>
+      <div class="inv-top-right">
+        <div class="inv-num">{{ invoice.invoiceNumber }}</div>
+        <div class="inv-date">{{ invoice.invoiceDate|date:"d M Y" }}</div>
+        <div style="margin-top:8px;">
+          {% if invoice.payment %}
+            <span class="badge {{ invoice.payment.paymentStatus }}">{{ invoice.payment.get_paymentStatus_display }}</span>
+          {% else %}
+            <span class="badge warning">Unpaid</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="inv-body">
+
+      <!-- From / To -->
+      <div class="inv-parties">
+        <div>
+          <div class="inv-party-label">From</div>
+          <div class="inv-party-name">{{ provider.garageName }}</div>
+          <div class="inv-party-detail">{{ provider.location }}</div>
+        </div>
+        <div>
+          <div class="inv-party-label">To</div>
+          <div class="inv-party-name">{{ invoice.booking.customer.user.get_full_name }}</div>
+          <div class="inv-party-detail">{{ invoice.booking.customer.user.email }}</div>
+          <div class="inv-party-detail">Vehicle: {{ invoice.booking.customer.vehicleNumber }}</div>
+        </div>
+      </div>
+
+      <hr class="inv-divider">
+
+      <!-- Booking info -->
+      <div style="display:flex;gap:32px;margin-bottom:20px;font-size:0.82rem;">
+        <div><span style="color:var(--text-light,#6b7280);">Booking ID</span><br><strong>#BK{{ invoice.booking.bookingId }}</strong></div>
+        <div><span style="color:var(--text-light,#6b7280);">Date</span><br><strong>{{ invoice.booking.bookingDate|date:"d M Y" }}</strong></div>
+        <div><span style="color:var(--text-light,#6b7280);">Time</span><br><strong>{{ invoice.booking.bookingTime|default:"—" }}</strong></div>
+        {% if invoice.payment %}
+        <div><span style="color:var(--text-light,#6b7280);">Payment Method</span><br><strong>{{ invoice.payment.get_paymentMethod_display }}</strong></div>
+        {% endif %}
+      </div>
+
+      <!-- Line items -->
+      <table class="inv-items">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ invoice.booking.service.serviceName }}</td>
+            <td>₹{{ invoice.booking.service.servicePrice }}</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-light,#6b7280);">GST / Tax</td>
+            <td>₹{{ invoice.taxAmount }}</td>
+          </tr>
+          {% if invoice.discountAmount %}
+          <tr>
+            <td style="color:#16a34a;">Discount</td>
+            <td style="color:#16a34a;">− ₹{{ invoice.discountAmount }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="inv-totals">
+        <div class="inv-total-row grand">
+          <span>Total</span>
+          <span>₹{{ invoice.totalAmount }}</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer status bar -->
+    <div class="inv-status-bar">
+      <span style="color:var(--text-light,#6b7280);">Generated on {{ invoice.invoiceDate|date:"d M Y" }} &nbsp;·&nbsp; Booking #BK{{ invoice.booking.bookingId }}</span>
+      <span>E-Garage Provider Portal</span>
+    </div>
+
+  </div>
+</div>
+
+{% if auto_print %}
+<script>
+  window.addEventListener('load', function () {
+    window.print();
+    window.onafterprint = function () { window.close(); };
+  });
+</script>
+{% endif %}
+
+{% endblock %}

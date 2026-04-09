@@ -81,31 +81,39 @@
   </div>
 
   <!-- Vehicle Card -->
-  {% if customer_profile %}
   <div class="vehicle-card">
     <div class="vehicle-banner">
       <div class="vehicle-icon"><i class="fas fa-car"></i></div>
-      <span class="vehicle-number">{{ customer_profile.vehicleNumber }}</span>
-      <span class="vehicle-model">{{ customer_profile.vehicleModel }} · {{ customer_profile.vehicleYear }}</span>
+      <div>
+        <span class="vehicle-number" style="font-size:1rem;">My Vehicles</span>
+        <span class="vehicle-model">{{ vehicles|length }} vehicle{{ vehicles|length|pluralize }} registered</span>
+      </div>
     </div>
     <div class="vehicle-details">
-      <div class="veh-row"><span>Type</span><span>{{ customer_profile.get_vehicleType_display }}</span></div>
-      {% if customer_profile.vehicleColor %}
-      <div class="veh-row"><span>Color</span><span>{{ customer_profile.vehicleColor }}</span></div>
+      {% if vehicles %}
+        {% for vehicle in vehicles %}
+        <div class="veh-row">
+          <span style="display:flex;align-items:center;gap:8px;">
+            {% if vehicle.vehicleType == 'bike' %}
+              <i class="fas fa-motorcycle" style="opacity:.5;width:14px"></i>
+            {% else %}
+              <i class="fas fa-car" style="opacity:.5;width:14px"></i>
+            {% endif %}
+            {{ vehicle.vehicleModel }}
+          </span>
+          <span class="veh-val">{{ vehicle.vehicleNumber }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="veh-row" style="justify-content:center;opacity:.6;">
+          <span>No vehicles added yet</span>
+        </div>
       {% endif %}
-      <div class="veh-row"><span>Year</span><span>{{ customer_profile.vehicleYear }}</span></div>
     </div>
     <a href="{% url 'my_vehicle' %}" class="btn-primary btn-full">
-      <i class="fas fa-pen"></i> Edit Vehicle
+      <i class="fas fa-pen"></i> Manage Vehicles
     </a>
   </div>
-  {% else %}
-  <div class="card card-empty">
-    <i class="fas fa-car" style="font-size:2rem;color:var(--text-light);margin-bottom:10px"></i>
-    <p>No vehicle added yet.</p>
-    <a href="{% url 'my_vehicle' %}" class="btn-primary" style="margin-top:10px">Add Vehicle</a>
-  </div>
-  {% endif %}
 
 </div>
 {% endblock %}

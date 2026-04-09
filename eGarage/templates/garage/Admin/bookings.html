@@ -35,7 +35,7 @@
           {% for b in bookings %}
           <tr data-role="{{ b.status }}">
             <td><strong>#BK{{ b.id }}</strong></td>
-            <td>{{ b.customer.get_full_name }}</td>
+            <td><strong>{{ b.customer.user.email }}</strong></td>
             <td>{{ b.service.name }}</td>
             <td>{{ b.provider.garage_name }}</td>
             <td>{{ b.date|date:"d M Y" }}</td>
@@ -47,7 +47,7 @@
               {% elif b.status == 'in_progress' %}<span class="badge info">In Progress</span>
               {% else %}<span class="badge danger">Cancelled</span>{% endif %}
             </td>
-            <td><button class="act-btn view" onclick="showBookingModal('#BK{{ b.id }}','{{ b.customer.get_full_name }}','{{ b.service.name }}','{{ b.provider.garage_name }}','{{ b.date|date:"d M Y" }}','{{ b.time_slot }}','₹{{ b.amount }}','{{ b.status }}','{{ b.vehicle_number }}')"><i class="fas fa-eye"></i></button></td>
+            <td><button class="act-btn view" onclick="showBookingModal('#BK{{ b.id }}','{{ b.customer.user.email }}','{{ b.service.name }}','{{ b.provider.garage_name }}','{{ b.date|date:"d M Y" }}','{{ b.time_slot }}','₹{{ b.amount }}','{{ b.status }}','{{ b.vehicle_number }}')"><i class="fas fa-eye"></i></button></td>
           </tr>
           {% empty %}
           <tr><td colspan="9" style="text-align:center;color:var(--text-muted)">No bookings found.</td></tr>

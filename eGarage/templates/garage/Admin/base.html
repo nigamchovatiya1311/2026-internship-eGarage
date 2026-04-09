@@ -111,14 +111,6 @@
 
     <!-- ── Reports ── -->
     <div class="nav-section-label">Reports</div>
-    <a href="{% url 'admin_disputes' %}"
-       class="nav-item {% if active_section == 'disputes' %}active{% endif %}">
-      <div class="nav-icon"><i class="fas fa-triangle-exclamation"></i></div>
-      <span>Disputes</span>
-      {% if open_disputes %}
-        <span class="nav-badge warn">{{ open_disputes }}</span>
-      {% endif %}
-    </a>
     <a href="{% url 'admin_analytics' %}"
        class="nav-item {% if active_section == 'analytics' %}active{% endif %}">
       <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
@@ -126,7 +118,7 @@
     </a>
     <a href="{% url 'admin_reports' %}"
        class="nav-item {% if active_section == 'reports' %}active{% endif %}">
-      <div class="nav-icon"><i class="fas fa-file-chart-column"></i></div>
+      <div class="nav-icon"><i class="fa-solid fa-chart-column"></i></div>
       <span>Generate Reports</span>
     </a>
 

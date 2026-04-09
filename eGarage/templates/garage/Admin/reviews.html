@@ -31,11 +31,21 @@
         <span class="review-booking">Booking #BK{{ review.booking.id }}</span>
         {% if review.is_flagged %}
           <span class="badge danger" style="font-size:0.68rem">Flagged</span>
-          <button class="btn-sm resolve" onclick="showToast('Review restored','success')"><i class="fas fa-check"></i> Restore</button>
+          <form method="post" action="{% url 'flag_review' review.id %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn-sm resolve"><i class="fas fa-check"></i> Restore</button>
+          </form>
         {% else %}
-          <button class="btn-sm" onclick="showToast('Review flagged','warning')"><i class="fas fa-flag"></i> Flag</button>
+          <form method="post" action="{% url 'flag_review' review.id %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn-sm"><i class="fas fa-flag"></i> Flag</button>
+          </form>
         {% endif %}
-        <button class="btn-sm del" onclick="confirmDelete('review','this review', {{ review.id }})"><i class="fas fa-trash"></i> Delete</button>
+        <form method="post" action="{% url 'delete_review' review.id %}" style="display:inline"
+              onsubmit="return confirm('Delete this review?')">
+          {% csrf_token %}
+          <button type="submit" class="btn-sm del"><i class="fas fa-trash"></i> Delete</button>
+        </form>
       </div>
     </div>
     {% empty %}

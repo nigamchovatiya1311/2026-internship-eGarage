@@ -94,11 +94,12 @@ class CustomerProfile(models.Model):
                         on_delete=models.CASCADE,
                         related_name='customer_profile'
                     )
-    vehicleType   = models.CharField(max_length=10, choices=VEHICLE_TYPE_CHOICES)
-    vehicleNumber = models.CharField(max_length=20)
-    vehicleModel  = models.CharField(max_length=50)
+    vehicleType   = models.CharField(max_length=10, choices=VEHICLE_TYPE_CHOICES, blank=True, default='car')
+    vehicleNumber = models.CharField(max_length=20, blank=True, default='')
+    vehicleModel  = models.CharField(max_length=50, blank=True, default='')
     vehicleYear   = models.IntegerField(null=True, blank=True)
     vehicleColor  = models.CharField(max_length=30, null=True, blank=True)
+    extraVehicles = models.TextField(blank=True, default='')   # stores extra vehicles as JSON
 
     class Meta:
         db_table = "customer_profile"

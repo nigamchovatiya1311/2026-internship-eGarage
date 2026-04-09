@@ -42,7 +42,7 @@
           <td>
             <div class="user-cell">
               <div class="u-avatar">{{ b.customer.user.first_name|first|upper }}</div>
-              {{ b.customer.user.get_full_name }}
+              {{ b.customer.user.first_name }} {{ b.customer.user.last_name }}
             </div>
           </td>
           <td>{{ b.service.serviceName }}</td>
@@ -59,12 +59,14 @@
                 <button type="submit" class="act-btn approve" title="Confirm booking"><i class="fas fa-check"></i></button>
               </form>
               {% endif %}
+
               {% if b.bookingStatus == 'confirmed' %}
               <form method="POST" action="{% url 'provider_start_booking' b.bookingId %}" style="display:inline">
                 {% csrf_token %}
                 <button type="submit" class="act-btn info" title="Start service"><i class="fas fa-play"></i></button>
               </form>
               {% endif %}
+
               {% if b.bookingStatus == 'in_progress' %}
               <form method="POST" action="{% url 'provider_complete_booking' b.bookingId %}" style="display:inline">
                 {% csrf_token %}
@@ -73,15 +75,26 @@
                 </button>
               </form>
               {% endif %}
+
               {% if b.bookingStatus == 'completed' %}
-                {% if b.invoice %}
-                <a href="{% url 'provider_invoice_download' b.invoice.invoiceId %}" class="act-btn" title="Download invoice" style="background:#f0fdf4;border-color:#16a34a;color:#16a34a"><i class="fas fa-download"></i></a>
-                <a href="{% url 'provider_invoice_print' b.invoice.invoiceId %}" class="act-btn" title="Print invoice" style="background:#f5f3ff;border-color:#7c3aed;color:#7c3aed" target="_blank"><i class="fas fa-print"></i></a>
+                {% if b.has_invoice and b.invoice_obj %}
+                <a href="{% url 'provider_invoice_view' b.invoice_obj.invoiceId %}" class="act-btn" title="View invoice" style="background:#f0fdf4;border-color:#16a34a;color:#16a34a">
+                  <i class="fas fa-file-invoice"></i>
+                </a>
                 {% else %}
-                <a href="{% url 'provider_invoice_generate' b.bookingId %}" class="act-btn" title="Generate invoice" style="background:#fff3ee;border-color:#e8560a;color:#e8560a"><i class="fas fa-file-invoice"></i></a>
+                <a href="{% url 'provider_invoice_generate' b.bookingId %}" class="act-btn" title="Generate invoice" style="background:#fff3ee;border-color:#e8560a;color:#e8560a">
+                  <i class="fas fa-file-invoice"></i>
+                </a>
                 {% endif %}
               {% endif %}
-              <a href="{% url 'provider_booking_detail' b.bookingId %}" class="act-btn view" title="View booking"><i class="fas fa-eye"></i></a>
+
+              <!-- Eye button: uses data-url, no href navigation -->
+              <button type="button"
+                class="act-btn view view-detail-btn"
+                title="View booking"
+                data-url="{% url 'provider_booking_detail' b.bookingId %}">
+                <i class="fas fa-eye"></i>
+              </button>
             </div>
           </td>
         </tr>
@@ -110,4 +123,100 @@
   </div>
   {% endif %}
 </div>
+
+<!-- BOOKING DETAIL MODAL -->
+<div id="bookingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+  <div style="background:#fff;border-radius:12px;width:90%;max-width:520px;box-shadow:0 8px 32px rgba(0,0,0,0.2);overflow:hidden;">
+    <div style="background:#1e3a5f;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="margin:0;font-size:17px;"><i class="fas fa-calendar-check" style="margin-right:8px;color:#e8560a"></i>Booking Detail</h3>
+      <button onclick="closeBookingModal()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
+    </div>
+    <div id="modalBody" style="padding:24px;max-height:70vh;overflow-y:auto;">
+      <!-- content injected by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+function openBookingModal() {
+  var m = document.getElementById('bookingModal');
+  m.style.display = 'flex';
+}
+
+function closeBookingModal() {
+  document.getElementById('bookingModal').style.display = 'none';
+}
+
+// Close when clicking backdrop
+document.getElementById('bookingModal').addEventListener('click', function(e) {
+  if (e.target === this) closeBookingModal();
+});
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeBookingModal();
+});
+
+// Attach click to all eye buttons
+document.querySelectorAll('.view-detail-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var url = this.getAttribute('data-url');
+
+    // Show spinner immediately
+    document.getElementById('modalBody').innerHTML =
+      '<div style="text-align:center;padding:40px 20px;">' +
+        '<i class="fas fa-spinner fa-spin" style="font-size:32px;color:#e8560a;"></i>' +
+        '<p style="margin-top:12px;color:#666;">Loading...</p>' +
+      '</div>';
+    openBookingModal();
+
+    fetch(url, {
+      headers: { 'x-requested-with': 'XMLHttpRequest' }
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('Server error: ' + r.status);
+      return r.json();
+    })
+    .then(function(d) {
+      var statusColors = {
+        pending:     '#f9a825',
+        confirmed:   '#3b82f6',
+        in_progress: '#7c3aed',
+        completed:   '#16a34a',
+        cancelled:   '#dc2626'
+      };
+      var color = statusColors[d.status] || '#6b7280';
+
+      document.getElementById('modalBody').innerHTML =
+        '<h2 style="color:#1e3a5f;margin:0 0 20px;font-size:20px;">#BK' + d.bookingId + '</h2>' +
+        '<table style="width:100%;font-size:14px;border-collapse:collapse;">' +
+          row('Customer',  d.customer) +
+          row('Email',     '<a href="mailto:' + d.email + '" style="color:#e8560a">' + d.email + '</a>') +
+          row('Vehicle',   d.vehicle) +
+          row('Service',   d.service) +
+          row('Price',     '₹' + d.price) +
+          row('Date',      d.date) +
+          row('Time',      d.time) +
+          row('Status',    '<span style="background:' + color + '22;color:' + color + ';padding:3px 14px;border-radius:20px;font-weight:600;font-size:13px;">' + d.status_display + '</span>') +
+          row('Notes',     d.notes) +
+        '</table>';
+    })
+    .catch(function(err) {
+      document.getElementById('modalBody').innerHTML =
+        '<div style="text-align:center;padding:30px;">' +
+          '<i class="fas fa-exclamation-circle" style="font-size:32px;color:#dc2626;"></i>' +
+          '<p style="color:#dc2626;margin-top:12px;">Failed to load booking details.<br><small>' + err.message + '</small></p>' +
+        '</div>';
+    });
+  });
+});
+
+function row(label, value) {
+  return '<tr style="border-bottom:1px solid #f0f0f0;">' +
+    '<td style="font-weight:600;color:#555;padding:10px 0;width:120px;vertical-align:top;">' + label + '</td>' +
+    '<td style="padding:10px 0;color:#222;">' + value + '</td>' +
+  '</tr>';
+}
+</script>
+
 {% endblock %}

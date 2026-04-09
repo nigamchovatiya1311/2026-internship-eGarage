@@ -1,93 +1,569 @@
 {% extends "garage/Customer/base.html" %}
 {% load static %}
 
-{% block page_title %}My Vehicle{% endblock %}
-{% block breadcrumb %}My Vehicle{% endblock %}
+{% block page_title %}My Vehicles{% endblock %}
+{% block breadcrumb %}My Vehicles{% endblock %}
 
 {% block content %}
+
+<!-- ══════════════════════════════════════════
+     ALL VEHICLE PAGE STYLES (self-contained)
+══════════════════════════════════════════ -->
+<style>
+/* ── Layout ── */
+.vehicle-page-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── Grid of cards ── */
+.vehicles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+/* ── Individual vehicle card ── */
+.vehicle-card {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow .2s, transform .2s, border-color .2s;
+  display: flex;
+  flex-direction: column;
+}
+.vehicle-card:hover {
+  box-shadow: 0 8px 32px rgba(232,86,10,.13);
+  border-color: #e8560a;
+  transform: translateY(-3px);
+}
+
+/* ── Card top banner ── */
+.vehicle-banner {
+  background: linear-gradient(135deg, #1e3a5f 0%, #16325a 100%);
+  padding: 22px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.vehicle-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(232,86,10,.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #e8560a;
+  border: 2px solid rgba(232,86,10,.35);
+  margin-bottom: 4px;
+}
+.vehicle-number {
+  font-family: 'Courier New', monospace;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 6px;
+  padding: 3px 12px;
+  letter-spacing: 2px;
+}
+.vehicle-model {
+  font-size: .8rem;
+  color: rgba(255,255,255,.7);
+  font-weight: 500;
+}
+
+/* ── Card detail rows ── */
+.vehicle-details {
+  padding: 14px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.veh-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .82rem;
+  color: #64748b;
+  padding: 4px 0;
+  border-bottom: 1px dashed #f1f5f9;
+}
+.veh-row:last-child { border-bottom: none; }
+.veh-row span:first-child { display: flex; align-items: center; gap: 6px; }
+.veh-row span:last-child  { font-weight: 600; color: #1e3a5f; }
+.veh-row.highlight span:last-child { color: #e8560a; }
+
+/* ── Card action buttons ── */
+.vehicle-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid #f1f5f9;
+}
+.veh-action-btn {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  border-radius: 7px;
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background .15s, transform .1s;
+}
+.veh-action-btn:active { transform: scale(.97); }
+.edit-btn   { background: #eff6ff; color: #1e3a5f; }
+.edit-btn:hover   { background: #dbeafe; }
+.delete-btn { background: #fef2f2; color: #dc2626; }
+.delete-btn:hover { background: #fee2e2; }
+
+/* ── Add vehicle card ── */
+.vehicle-card-add {
+  background: #fff;
+  border: 2px dashed #d1d5db;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 36px 20px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  min-height: 200px;
+}
+.vehicle-card-add:hover {
+  border-color: #e8560a;
+  background: #fff8f5;
+}
+.add-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fef3ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #e8560a;
+  transition: background .2s;
+}
+.vehicle-card-add:hover .add-icon { background: #e8560a; color: #fff; }
+.add-label    { font-weight: 800; font-size: .95rem; color: #1e3a5f; }
+.add-sublabel { font-size: .75rem; color: #94a3b8; }
+
+/* ── Empty state ── */
+.vehicle-empty-state {
+  grid-column: 1 / -1;
+  background: #fff;
+  border: 2px dashed #e5e7eb;
+  border-radius: 14px;
+  padding: 48px 24px;
+  text-align: center;
+}
+.ves-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: #f8fafc; border: 1.5px solid #e5e7eb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; color: #94a3b8;
+  margin: 0 auto 16px;
+}
+.vehicle-empty-state h3 {
+  font-size: 1.05rem; font-weight: 800; text-transform: uppercase;
+  color: #1e3a5f; margin-bottom: 8px;
+}
+.vehicle-empty-state p { font-size: .85rem; color: #94a3b8; }
+
+/* ── Form panel ── */
+.vehicle-form-panel {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.form-card-header {
+  background: linear-gradient(135deg,#1e3a5f,#16325a);
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+}
+.form-card-header-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(232,86,10,.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: #e8560a; flex-shrink: 0;
+}
+.form-card-header h3 { flex: 1; font-size: 1rem; font-weight: 800; margin: 0; }
+.close-btn {
+  background: rgba(255,255,255,.1); border: none; border-radius: 50%;
+  width: 30px; height: 30px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; color: #fff; transition: background .15s;
+}
+.close-btn:hover { background: rgba(255,255,255,.25); }
+
+.form-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+
+.type-toggle { display: flex; gap: 10px; }
+.type-btn {
+  flex: 1; padding: 10px 12px; border: 1.5px solid #e5e7eb;
+  border-radius: 8px; background: #f8fafc; cursor: pointer;
+  font-weight: 700; font-size: .82rem; color: #64748b;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all .15s;
+}
+.type-btn.active { background: #e8560a; border-color: #e8560a; color: #fff; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
+
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label {
+  font-size: .78rem; font-weight: 700; color: #374151; text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.form-group input, .form-group select {
+  padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+  font-size: .88rem; color: #1e293b; outline: none; transition: border-color .15s;
+  background: #f9fafb;
+}
+.form-group input:focus, .form-group select:focus {
+  border-color: #e8560a; background: #fff;
+  box-shadow: 0 0 0 3px rgba(232,86,10,.08);
+}
+
+.form-divider   { height: 1px; background: #f1f5f9; }
+.form-section-label {
+  font-size: .72rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .8px; color: #e8560a;
+}
+.req { color: #e8560a; }
+
+.form-actions {
+  display: flex; gap: 10px; justify-content: flex-end; padding-top: 4px;
+}
+.btn-sm {
+  padding: 9px 18px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+  background: #f8fafc; color: #374151; font-size: .82rem; font-weight: 700;
+  cursor: pointer; transition: background .15s;
+}
+.btn-sm:hover { background: #e5e7eb; }
+.btn-primary {
+  padding: 9px 20px; border: none; border-radius: 8px;
+  background: #e8560a; color: #fff; font-size: .82rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: background .15s, transform .1s;
+}
+.btn-primary:hover   { background: #d14a00; }
+.btn-primary:active  { transform: scale(.97); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Alert ── */
+.alert {
+  padding: 12px 16px; border-radius: 10px; display: flex; align-items: center;
+  gap: 10px; font-size: .88rem; font-weight: 600;
+}
+.alert-success { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #166534; }
+.alert-error   { background: #fef2f2; border: 1.5px solid #fecaca; color: #dc2626; }
+
+/* ── Section header ── */
+.section-header { margin-bottom: 20px; }
+.section-title  { font-size: 1.4rem; font-weight: 900; color: #1e3a5f; }
+.section-sub    { font-size: .85rem; color: #64748b; margin-top: 2px; }
+</style>
+
+<!-- ── Flash messages ── -->
+{% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{% if msg.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom:18px">
+    <i class="fas fa-{% if msg.tags == 'error' %}exclamation-circle{% else %}check-circle{% endif %}"></i>
+    {{ msg }}
+  </div>
+  {% endfor %}
+{% endif %}
+
 <div class="section-header">
   <div>
-    <h1 class="section-title">My Vehicle</h1>
-    <p class="section-sub">View and update your vehicle details.</p>
+    <h1 class="section-title">My Vehicles</h1>
+    <p class="section-sub">Manage all your registered vehicles.</p>
   </div>
 </div>
 
-<div class="vehicle-page-grid">
+<div class="vehicle-page-layout">
 
-  <!-- Vehicle Display Card -->
-  {% if customer %}
-  <div class="vehicle-card">
-    <div class="vehicle-banner">
-      <div class="vehicle-icon"><i class="fas fa-car"></i></div>
-      <span class="vehicle-number">{{ customer.vehicleNumber }}</span>
-      <span class="vehicle-model">{{ customer.vehicleModel }} · {{ customer.vehicleYear }}</span>
-    </div>
-    <div class="vehicle-details">
-      <div class="veh-row"><span>Type</span><span>{{ customer.get_vehicleType_display }}</span></div>
-      <div class="veh-row"><span>Number</span><span>{{ customer.vehicleNumber }}</span></div>
-      <div class="veh-row"><span>Model</span><span>{{ customer.vehicleModel }}</span></div>
-      <div class="veh-row"><span>Year</span><span>{{ customer.vehicleYear|default:"—" }}</span></div>
-      {% if customer.vehicleColor %}
-      <div class="veh-row"><span>Color</span><span>{{ customer.vehicleColor }}</span></div>
-      {% endif %}
-      <div class="veh-row"><span>Services Done</span><span>{{ services_done }}</span></div>
-      <div class="veh-row"><span>Last Service</span><span>{{ last_service|date:"d M Y"|default:"—" }}</span></div>
-    </div>
-  </div>
-  {% else %}
-  <div class="card card-empty">
-    <i class="fas fa-car" style="font-size:2.5rem;color:var(--text-light);margin-bottom:12px"></i>
-    <p>No vehicle registered yet.</p>
-    <p style="font-size:0.82rem;color:var(--text-light);margin-top:4px">Fill in the form to add your vehicle.</p>
-  </div>
-  {% endif %}
+  <!-- ── Vehicles Grid ── -->
+  <div class="vehicles-grid" id="vehiclesGrid">
 
-  <!-- Edit Form -->
-  <form class="form-card" method="POST" action="{% url 'my_vehicle' %}">
-    {% csrf_token %}
-    <h3>{{ customer|yesno:"Update Vehicle,Add Vehicle" }} Info</h3>
-
-    <div class="form-group">
-      <label>Vehicle Type</label>
-      <select name="vehicle_type" required>
-        <option value="car"  {% if customer and customer.vehicleType == 'car'  %}selected{% endif %}>Car</option>
-        <option value="bike" {% if customer and customer.vehicleType == 'bike' %}selected{% endif %}>Bike</option>
-      </select>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Vehicle Number</label>
-        <input type="text" name="vehicle_number" placeholder="e.g. GJ01AB1234"
-               value="{{ customer.vehicleNumber|default:'' }}" required/>
+    {% for vehicle in vehicles %}
+    <div class="vehicle-card" onclick="openEditForm({{ vehicle.id }})">
+      <div class="vehicle-banner">
+        <div class="vehicle-icon">
+          <i class="fas fa-{% if vehicle.vehicleType == 'bike' %}motorcycle{% else %}car{% endif %}"></i>
+        </div>
+        <span class="vehicle-number">{{ vehicle.vehicleNumber }}</span>
+        <span class="vehicle-model">
+          {{ vehicle.vehicleModel }}{% if vehicle.vehicleYear %} · {{ vehicle.vehicleYear }}{% endif %}
+        </span>
       </div>
-      <div class="form-group">
-        <label>Vehicle Model</label>
-        <input type="text" name="vehicle_model" placeholder="e.g. Maruti Swift"
-               value="{{ customer.vehicleModel|default:'' }}" required/>
+      <div class="vehicle-details">
+        <div class="veh-row">
+          <span><i class="fas fa-tag"></i> Type</span>
+          <span>{{ vehicle.get_vehicleType_display }}</span>
+        </div>
+        {% if vehicle.vehicleColor %}
+        <div class="veh-row">
+          <span><i class="fas fa-palette"></i> Color</span>
+          <span>{{ vehicle.vehicleColor }}</span>
+        </div>
+        {% endif %}
+        <div class="veh-row highlight">
+          <span><i class="fas fa-wrench"></i> Services Done</span>
+          <span>{{ vehicle.services_done|default:0 }}</span>
+        </div>
+        <div class="veh-row">
+          <span><i class="fas fa-clock"></i> Last Service</span>
+          <span>{{ vehicle.last_service|date:"d M Y"|default:"—" }}</span>
+        </div>
+      </div>
+      <div class="vehicle-card-actions">
+        <button class="veh-action-btn edit-btn"
+                onclick="event.stopPropagation(); openEditForm({{ vehicle.id }})">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button class="veh-action-btn delete-btn"
+                onclick="event.stopPropagation(); vehicleConfirmDelete({{ vehicle.id }}, '{{ vehicle.vehicleNumber }}')">
+          <i class="fas fa-trash"></i> Delete
+        </button>
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>Year</label>
-        <input type="number" name="vehicle_year" placeholder="e.g. 2022"
-               min="1990" max="2026"
-               value="{{ customer.vehicleYear|default:'' }}"/>
-      </div>
-      <div class="form-group">
-        <label>Color</label>
-        <input type="text" name="vehicle_color" placeholder="e.g. Blue"
-               value="{{ customer.vehicleColor|default:'' }}"/>
-      </div>
+    {% empty %}
+    <div class="vehicle-empty-state">
+      <div class="ves-icon"><i class="fas fa-car"></i></div>
+      <h3>No Vehicles Yet</h3>
+      <p>Click <strong>Add Vehicle</strong> below to register your first car or bike.</p>
+    </div>
+    {% endfor %}
+
+    <!-- ── Add New Vehicle tile ── -->
+    <div class="vehicle-card-add" onclick="openAddForm()">
+      <div class="add-icon"><i class="fas fa-plus"></i></div>
+      <span class="add-label">Add Vehicle</span>
+      <span class="add-sublabel">Car, Bike or any two-wheeler</span>
     </div>
 
-    <div class="form-actions">
-      <button type="submit" class="btn-primary">
-        <i class="fas fa-save"></i> Save Changes
+  </div><!-- /vehicles-grid -->
+
+  <!-- ── Add / Edit Form Panel (hidden by default) ── -->
+  <div class="vehicle-form-panel" id="vehicleFormPanel" style="display:none">
+    <div class="form-card-header">
+      <div class="form-card-header-icon" id="formPanelIcon"><i class="fas fa-plus"></i></div>
+      <h3 id="formPanelTitle" style="color: white;">Add New Vehicle</h3>
+      <button class="close-btn" type="button" onclick="closeForm()" title="Close">
+        <i class="fas fa-times"></i>
       </button>
     </div>
-  </form>
 
-</div>
+    <form method="POST" action="{% url 'my_vehicle' %}" id="vehicleForm">
+      {% csrf_token %}
+      <input type="hidden" name="action"     id="formAction"    value="add"/>
+      <input type="hidden" name="vehicle_id" id="formVehicleId" value=""/>
+
+      <div class="form-body">
+
+        <!-- Vehicle type toggle -->
+        <div class="form-group">
+          <label>Vehicle Type <span class="req">*</span></label>
+          <div class="type-toggle">
+            <button type="button" class="type-btn active" id="btnCar"
+                    onclick="setVehicleType('car')">
+              <i class="fas fa-car"></i> Car
+            </button>
+            <button type="button" class="type-btn" id="btnBike"
+                    onclick="setVehicleType('bike')">
+              <i class="fas fa-motorcycle"></i> Bike / Two-Wheeler
+            </button>
+          </div>
+          <input type="hidden" name="vehicle_type" id="vehicleTypeInput" value="car"/>
+        </div>
+
+        <div class="form-divider"></div>
+        <div class="form-section-label">Vehicle Details</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Vehicle Number <span class="req">*</span></label>
+            <input type="text" name="vehicle_number" id="fieldNumber"
+                   placeholder="e.g. GJ01AB1234" required
+                   oninput="this.value=this.value.toUpperCase()"/>
+          </div>
+          <div class="form-group">
+            <label>Vehicle Model <span class="req">*</span></label>
+            <input type="text" name="vehicle_model" id="fieldModel"
+                   placeholder="e.g. Honda Activa" required/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Year</label>
+            <input type="number" name="vehicle_year" id="fieldYear"
+                   placeholder="e.g. 2021" min="1990" max="2030"/>
+          </div>
+          <div class="form-group">
+            <label>Color</label>
+            <input type="text" name="vehicle_color" id="fieldColor"
+                   placeholder="e.g. Red"/>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-sm" onclick="closeForm()">Cancel</button>
+          <button type="submit" class="btn-primary" id="formSubmitBtn">
+            <i class="fas fa-save"></i> Save Vehicle
+          </button>
+        </div>
+
+      </div>
+    </form>
+  </div><!-- /vehicle-form-panel -->
+
+  <!-- ── Delete Confirmation Modal ── -->
+  <div id="deleteModal"
+       style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);
+              z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:14px;padding:28px 24px;
+                max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2)">
+      <div style="width:52px;height:52px;border-radius:50%;background:#fef2f2;
+                  display:flex;align-items:center;justify-content:center;
+                  margin:0 auto 16px;font-size:1.3rem;color:#dc2626">
+        <i class="fas fa-trash"></i>
+      </div>
+      <h3 style="font-size:1.05rem;font-weight:900;text-transform:uppercase;
+                 text-align:center;color:#1e3a5f;margin-bottom:8px">
+        Delete Vehicle?
+      </h3>
+      <p style="font-size:.84rem;color:#64748b;text-align:center;margin-bottom:22px">
+        Vehicle <strong id="deleteVehicleNum" style="color:#1e3a5f"></strong> will be permanently removed.
+      </p>
+      <form method="POST" action="{% url 'my_vehicle' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action"     value="delete"/>
+        <input type="hidden" name="vehicle_id" id="deleteVehicleId"/>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button type="button" class="btn-sm"
+                  onclick="vehicleCloseDelete()" style="padding:10px 20px">Cancel</button>
+          <button type="submit" class="btn-primary" style="background:#dc2626">
+            <i class="fas fa-trash"></i> Yes, Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div><!-- /vehicle-page-layout -->
+
+<script>
+// Serialise vehicles from Django into JS so the edit form can pre-fill
+const VEHICLES = {
+  {% for v in vehicles %}
+  {{ v.id }}: {
+    type:   "{{ v.vehicleType }}",
+    number: "{{ v.vehicleNumber }}",
+    model:  "{{ v.vehicleModel|escapejs }}",
+    year:   "{{ v.vehicleYear|default:'' }}",
+    color:  "{{ v.vehicleColor|default:''|escapejs }}"
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+};
+
+function setVehicleType(val) {
+  document.getElementById('vehicleTypeInput').value = val;
+  document.getElementById('btnCar').classList.toggle('active',  val === 'car');
+  document.getElementById('btnBike').classList.toggle('active', val === 'bike');
+}
+
+function openAddForm() {
+  document.getElementById('formAction').value    = 'add';
+  document.getElementById('formVehicleId').value = '';
+  document.getElementById('formPanelTitle').textContent = 'Add New Vehicle';
+  document.getElementById('formPanelIcon').innerHTML    = '<i class="fas fa-plus"></i>';
+  document.getElementById('formSubmitBtn').innerHTML    = '<i class="fas fa-save"></i> Save Vehicle';
+  document.getElementById('fieldNumber').value = '';
+  document.getElementById('fieldModel').value  = '';
+  document.getElementById('fieldYear').value   = '';
+  document.getElementById('fieldColor').value  = '';
+  setVehicleType('car');
+  showPanel();
+}
+
+function openEditForm(id) {
+  const v = VEHICLES[id];
+  if (!v) return;
+  document.getElementById('formAction').value    = 'edit';
+  document.getElementById('formVehicleId').value = id;
+  document.getElementById('formPanelTitle').textContent = 'Edit Vehicle';
+  document.getElementById('formPanelIcon').innerHTML    = '<i class="fas fa-edit"></i>';
+  document.getElementById('formSubmitBtn').innerHTML    = '<i class="fas fa-save"></i> Update Vehicle';
+  document.getElementById('fieldNumber').value = v.number;
+  document.getElementById('fieldModel').value  = v.model;
+  document.getElementById('fieldYear').value   = v.year;
+  document.getElementById('fieldColor').value  = v.color;
+  setVehicleType(v.type);
+  showPanel();
+}
+
+function showPanel() {
+  const panel = document.getElementById('vehicleFormPanel');
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeForm() {
+  document.getElementById('vehicleFormPanel').style.display = 'none';
+}
+
+function vehicleConfirmDelete(id, number) {
+  if (!id) return;   // ✅ safety guard — never open modal without a valid id
+  document.getElementById('deleteVehicleId').value        = id;
+  document.getElementById('deleteVehicleNum').textContent = number;
+  document.getElementById('deleteModal').style.display    = 'flex';
+}
+
+function vehicleCloseDelete() {
+  document.getElementById('deleteModal').style.display = 'none';
+}
+
+// ✅ FIX: block form submit if vehicle_id is somehow empty
+document.addEventListener('DOMContentLoaded', function () {
+  var deleteForm = document.querySelector('#deleteModal form');
+  if (deleteForm) {
+    deleteForm.addEventListener('submit', function (e) {
+      var vid = document.getElementById('deleteVehicleId').value;
+      if (!vid || vid === '0') {
+        e.preventDefault();
+        alert('Error: no vehicle selected. Please try again.');
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

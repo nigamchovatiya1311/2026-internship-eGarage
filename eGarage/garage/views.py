@@ -47,8 +47,7 @@ def get_base_context(request):
         'pending_providers':    ServiceProvider.objects.filter(approvalStatus='pending').count(),
         'new_bookings':         Bookings.objects.filter(bookingStatus='pending').count(),
         'unread_notifications': Notification.objects.filter(isRead=False).count(),
-        'open_disputes':        0,   # No Dispute model yet — update when added
-
+        'open_disputes':        0,
         'notifications_list':   Notification.objects.filter(isRead=False).order_by('-createdAt')[:5],
     }
 
@@ -60,7 +59,6 @@ def get_base_context(request):
 def overview(request):
     today = date.today()
 
-    # ── stat cards ─────────────────────────────────────────
     total_users     = User.objects.count()
     total_providers = ServiceProvider.objects.count()
     total_bookings  = Bookings.objects.count()
@@ -70,22 +68,19 @@ def overview(request):
         .aggregate(total=Sum('amount'))['total'] or 0
     )
 
-    # ── booking status breakdown ────────────────────────────
     status_counts = Bookings.objects.aggregate(
-        completed  = Count('bookingId', filter=Q(bookingStatus='completed')),
-        in_progress= Count('bookingId', filter=Q(bookingStatus='in_progress')),
-        pending    = Count('bookingId', filter=Q(bookingStatus='pending')),
-        cancelled  = Count('bookingId', filter=Q(bookingStatus='cancelled')),
+        completed   = Count('bookingId', filter=Q(bookingStatus='completed')),
+        in_progress = Count('bookingId', filter=Q(bookingStatus='in_progress')),
+        pending     = Count('bookingId', filter=Q(bookingStatus='pending')),
+        cancelled   = Count('bookingId', filter=Q(bookingStatus='cancelled')),
     )
 
-    # ── recent 5 bookings ───────────────────────────────────
     recent_bookings = (
         Bookings.objects
         .select_related('customer__user', 'service', 'provider')
         .order_by('-createdAt')[:5]
     )
 
-    # Attach a display amount from related payment if present
     enriched_bookings = []
     for b in recent_bookings:
         amount = 0
@@ -105,27 +100,21 @@ def overview(request):
         **get_base_context(request),
         'active_section':       'overview',
         'today':                today.strftime('%d %b %Y'),
-
-        # stat cards
         'total_users':          total_users,
         'total_bookings':       total_bookings,
         'total_providers':      total_providers,
         'monthly_revenue':      monthly_revenue,
-
-        # donut chart
         'completed_bookings':   status_counts['completed'],
         'inprogress_bookings':  status_counts['in_progress'],
         'pending_bookings':     status_counts['pending'],
         'cancelled_bookings':   status_counts['cancelled'],
-
-        # table
         'recent_bookings':      enriched_bookings,
     }
     return render(request, 'garage/Admin/overview.html', context)
 
 
 # ============================================================
-#  2. MANAGE USERS  —  /admin-panel/users/
+#  2. MANAGE USERS
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def manage_users(request):
@@ -134,9 +123,7 @@ def manage_users(request):
     status = request.GET.get('status', '')
     page   = request.GET.get('page', 1)
 
-    # qs = User.objects.order_by('-date_joined')
     qs = User.objects.order_by('-created_at')
-
 
     if q:
         qs = qs.filter(
@@ -151,7 +138,6 @@ def manage_users(request):
     elif status == 'blocked':
         qs = qs.filter(is_active=False)
 
-    # Attach a colour to each user for the avatar
     COLORS = ['#e8560a', '#1e3a5f', '#16a34a', '#7c3aed', '#f9a825', '#dc2626']
     users_with_color = []
     for i, u in enumerate(qs):
@@ -174,7 +160,6 @@ def manage_users(request):
     return render(request, 'garage/Admin/users.html', context)
 
 
-# ── Block a user ─────────────────────────────────────────────
 @role_required(allowed_roles=["admin"])
 def block_user(request, pk):
     user = get_object_or_404(User, pk=pk)
@@ -186,7 +171,6 @@ def block_user(request, pk):
     return redirect('admin_users')
 
 
-# ── Unblock a user ───────────────────────────────────────────
 @role_required(allowed_roles=["admin"])
 def unblock_user(request, pk):
     user = get_object_or_404(User, pk=pk)
@@ -198,7 +182,6 @@ def unblock_user(request, pk):
     return redirect('admin_users')
 
 
-# ── Approve a pending user ───────────────────────────────────
 @role_required(allowed_roles=["admin"])
 def approve_user(request, pk):
     user = get_object_or_404(User, pk=pk)
@@ -208,7 +191,6 @@ def approve_user(request, pk):
     return redirect('admin_users')
 
 
-# ── Add user ─────────────────────────────────────────────────
 @role_required(allowed_roles=["admin"])
 def add_user(request):
     if request.method == 'POST':
@@ -219,7 +201,7 @@ def add_user(request):
 
 
 # ============================================================
-#  3. SERVICE PROVIDERS  —  /admin-panel/providers/
+#  3. SERVICE PROVIDERS
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def service_providers(request):
@@ -238,7 +220,6 @@ def service_providers(request):
     if approval not in ('', 'all'):
         qs = qs.filter(approvalStatus=approval)
 
-    # Attach helper attributes expected by the template
     for p in qs:
         p.garage_name     = p.garageName
         p.city            = p.location
@@ -268,7 +249,6 @@ def service_providers(request):
     return render(request, 'garage/Admin/providers.html', context)
 
 
-# ── Approve a provider ───────────────────────────────────────
 @role_required(allowed_roles=["admin"])
 def approve_provider(request, pk):
     provider = get_object_or_404(ServiceProvider, pk=pk)
@@ -286,7 +266,6 @@ def approve_provider(request, pk):
     return redirect('admin_providers')
 
 
-# ── Reject / delete a provider ───────────────────────────────
 @role_required(allowed_roles=["admin"])
 def reject_provider(request, pk):
     provider = get_object_or_404(ServiceProvider, pk=pk)
@@ -305,7 +284,7 @@ def reject_provider(request, pk):
 
 
 # ============================================================
-#  4. CUSTOMER PROFILES  —  /admin-panel/customers/
+#  4. CUSTOMER PROFILES
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def customer_profiles(request):
@@ -323,7 +302,6 @@ def customer_profiles(request):
     if vehicle_type not in ('', 'all'):
         qs = qs.filter(vehicleType=vehicle_type)
 
-    # Map camelCase model fields → snake_case names the template uses
     for cp in qs:
         cp.vehicle_type   = cp.vehicleType
         cp.vehicle_number = cp.vehicleNumber
@@ -333,14 +311,14 @@ def customer_profiles(request):
 
     context = {
         **get_base_context(request),
-        'active_section':   'customers',
+        'active_section':    'customers',
         'customer_profiles': qs,
     }
     return render(request, 'garage/Admin/customers.html', context)
 
 
 # ============================================================
-#  5. SERVICES  —  /admin-panel/services/
+#  5. SERVICES
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def services(request):
@@ -360,14 +338,13 @@ def services(request):
     if status:
         qs = qs.filter(isAvailable=(status == 'available'))
 
-    # Attach template-friendly aliases
     for svc in qs:
         svc.name             = svc.serviceName
         svc.description      = svc.serviceDescription
         svc.price            = svc.servicePrice
         svc.duration_minutes = svc.estimatedDuration
         svc.is_available     = svc.isAvailable
-        svc.provider         = svc.providerId   # FK object; has .garage_name below
+        svc.provider         = svc.providerId
         svc.provider.garage_name = svc.providerId.garageName
 
     provider_list = ServiceProvider.objects.filter(approvalStatus='approved')
@@ -383,15 +360,14 @@ def services(request):
     return render(request, 'garage/Admin/services.html', context)
 
 
-# ── Save / edit service ──────────────────────────────────────
 @role_required(allowed_roles=["admin"])
 @require_POST
 def save_service(request):
-    service_id  = request.POST.get('service_id', '').strip()
-    name        = request.POST.get('name', '').strip()
-    description = request.POST.get('description', '').strip()
-    price       = request.POST.get('price', 0)
-    duration    = request.POST.get('duration', 0)
+    service_id    = request.POST.get('service_id', '').strip()
+    name          = request.POST.get('name', '').strip()
+    description   = request.POST.get('description', '').strip()
+    price         = request.POST.get('price', 0)
+    duration      = request.POST.get('duration', 0)
     provider_name = request.POST.get('provider', '').strip()
 
     if not name:
@@ -421,7 +397,7 @@ def save_service(request):
 
 
 # ============================================================
-#  6. MONITOR BOOKINGS  —  /admin-panel/bookings/
+#  6. MONITOR BOOKINGS
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def monitor_bookings(request):
@@ -438,9 +414,9 @@ def monitor_bookings(request):
 
     if q:
         qs = qs.filter(
-            Q(bookingId__icontains=q)                 |
-            Q(customer__user__first_name__icontains=q)|
-            Q(service__serviceName__icontains=q)      |
+            Q(bookingId__icontains=q)                  |
+            Q(customer__user__first_name__icontains=q) |
+            Q(service__serviceName__icontains=q)       |
             Q(provider__garageName__icontains=q)
         )
     if status not in ('', 'all'):
@@ -448,15 +424,13 @@ def monitor_bookings(request):
     if bdate:
         qs = qs.filter(bookingDate=bdate)
 
-    # Attach template-friendly aliases
     for b in qs:
-        b.id         = b.bookingId
-        b.status     = b.bookingStatus
-        b.date       = b.bookingDate
-        b.time_slot  = b.bookingTime
-        b.service.name          = b.service.serviceName
-        b.provider.garage_name  = b.provider.garageName
-        # Amount from payment if exists
+        b.id        = b.bookingId
+        b.status    = b.bookingStatus
+        b.date      = b.bookingDate
+        b.time_slot = b.bookingTime
+        b.service.name         = b.service.serviceName
+        b.provider.garage_name = b.provider.garageName
         b.amount = b.payment.amount if hasattr(b, 'payment') and b.payment else 0
         b.vehicle_number = (
             b.customer.vehicleNumber if hasattr(b.customer, 'vehicleNumber') else '—'
@@ -487,7 +461,7 @@ def monitor_bookings(request):
 
 
 # ============================================================
-#  7. PAYMENTS  —  /admin-panel/payments/
+#  7. PAYMENTS
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def payments(request):
@@ -504,7 +478,7 @@ def payments(request):
 
     if q:
         qs = qs.filter(
-            Q(transactionId__icontains=q)                         |
+            Q(transactionId__icontains=q) |
             Q(booking__customer__user__first_name__icontains=q)
         )
     if method not in ('', 'all'):
@@ -512,7 +486,6 @@ def payments(request):
     if status:
         qs = qs.filter(paymentStatus=status)
 
-    # Template-friendly aliases
     for p in qs:
         p.id             = p.paymentId
         p.method         = p.paymentMethod
@@ -521,10 +494,10 @@ def payments(request):
         p.created_at     = p.paymentDate
 
     totals = Payments.objects.aggregate(
-        collected      = Sum('amount', filter=Q(paymentStatus='completed')),
-        pending_amount = Sum('amount', filter=Q(paymentStatus='pending')),
-        failed_amount  = Sum('amount', filter=Q(paymentStatus='failed')),
-        refunded_amount= Sum('amount', filter=Q(paymentStatus='refunded')),
+        collected       = Sum('amount', filter=Q(paymentStatus='completed')),
+        pending_amount  = Sum('amount', filter=Q(paymentStatus='pending')),
+        failed_amount   = Sum('amount', filter=Q(paymentStatus='failed')),
+        refunded_amount = Sum('amount', filter=Q(paymentStatus='refunded')),
     )
 
     paginator     = Paginator(qs, 20)
@@ -543,7 +516,7 @@ def payments(request):
 
 
 # ============================================================
-#  8. INVOICES  —  /admin-panel/invoices/
+#  8. INVOICES
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def invoices(request):
@@ -562,14 +535,13 @@ def invoices(request):
             Q(booking__customer__user__first_name__icontains=q)
         )
 
-    # Template-friendly aliases
     for inv in qs:
-        inv.id             = inv.invoiceId
-        inv.created_at     = inv.invoiceDate
-        inv.total_amount   = inv.totalAmount
-        inv.tax_amount     = inv.taxAmount
-        inv.discount_amount= inv.discountAmount
-        inv.service_amount = inv.totalAmount - inv.taxAmount + inv.discountAmount
+        inv.id              = inv.invoiceId
+        inv.created_at      = inv.invoiceDate
+        inv.total_amount    = inv.totalAmount
+        inv.tax_amount      = inv.taxAmount
+        inv.discount_amount = inv.discountAmount
+        inv.service_amount  = inv.totalAmount - inv.taxAmount + inv.discountAmount
 
     paginator     = Paginator(qs, 20)
     invoices_page = paginator.get_page(page)
@@ -582,11 +554,9 @@ def invoices(request):
     return render(request, 'garage/Admin/invoices.html', context)
 
 
-# ── Download invoice (PDF stub — plug in WeasyPrint/ReportLab)
 @role_required(allowed_roles=["admin"])
 def download_invoice(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
-    # Stub: return a plain text receipt until PDF library is added
     content = (
         f"Invoice: {invoice.invoiceNumber}\n"
         f"Date:    {invoice.invoiceDate}\n"
@@ -602,13 +572,13 @@ def download_invoice(request, pk):
 
 
 # ============================================================
-#  9. REVIEWS  —  /admin-panel/reviews/
+#  9. REVIEWS
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def reviews(request):
-    q    = request.GET.get('q', '').strip()
-    rating  = request.GET.get('rating', '')
-    page = request.GET.get('page', 1)
+    q      = request.GET.get('q', '').strip()
+    rating = request.GET.get('rating', '')
+    page   = request.GET.get('page', 1)
 
     qs = (
         Review.objects
@@ -618,8 +588,8 @@ def reviews(request):
 
     if q:
         qs = qs.filter(
-            Q(comment__icontains=q)                      |
-            Q(customer__user__first_name__icontains=q)   |
+            Q(comment__icontains=q)                    |
+            Q(customer__user__first_name__icontains=q) |
             Q(provider__garageName__icontains=q)
         )
     if rating == 'low':
@@ -627,14 +597,14 @@ def reviews(request):
     elif rating:
         qs = qs.filter(rating=rating)
 
-    # Template-friendly aliases
     for r in qs:
-        r.user          = r.customer.user
-        r.service       = r.booking.service
-        r.service.name  = r.booking.service.serviceName
+        r.id           = r.reviewId
+        r.user         = r.customer.user
+        r.service      = r.booking.service
+        r.service.name = r.booking.service.serviceName
         r.provider.garage_name = r.provider.garageName
-        r.created_at    = r.createdAt
-        r.is_flagged    = False   # Add is_flagged field to Review model if needed
+        r.created_at   = r.createdAt
+        r.is_flagged   = getattr(r, 'isFlagged', False)
 
     stats = Review.objects.aggregate(
         avg_rating    = Avg('rating'),
@@ -656,18 +626,23 @@ def reviews(request):
         'avg_rating':     avg_rating,
         'positive_pct':   positive_pct,
         'total_reviews':  total_reviews,
-        'flagged_count':  0,   # Update when is_flagged field is added
+        'flagged_count':  0,
     }
     return render(request, 'garage/Admin/reviews.html', context)
 
 
-# ── Flag / delete review ─────────────────────────────────────
 @role_required(allowed_roles=["admin"])
 def flag_review(request, pk):
-    # review = get_object_or_404(Review, pk=pk)
-    # review.is_flagged = True
-    # review.save()
-    messages.warning(request, 'Review flagged for moderation.')
+    review = get_object_or_404(Review, pk=pk)
+    if hasattr(review, 'isFlagged'):
+        review.isFlagged = not review.isFlagged
+        review.save()
+        if review.isFlagged:
+            messages.warning(request, 'Review flagged for moderation.')
+        else:
+            messages.success(request, 'Review restored successfully.')
+    else:
+        messages.warning(request, 'Review flagged for moderation.')
     return redirect('admin_reviews')
 
 
@@ -680,15 +655,14 @@ def delete_review(request, pk):
 
 
 # ============================================================
-#  10. NOTIFICATIONS  —  /admin-panel/notifications/
+#  10. NOTIFICATIONS
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def notifications(request):
     notifs = Notification.objects.select_related('user').order_by('-createdAt')
 
-    # Template-friendly aliases
     for n in notifs:
-        n.id         = n.pk          # safe regardless of pk field name
+        n.id         = n.pk
         n.notif_type = n.notificationType
         n.is_read    = n.isRead
         n.created_at = n.createdAt
@@ -714,7 +688,6 @@ def notifications(request):
     return render(request, 'garage/Admin/notifications.html', context)
 
 
-# ── Send notification ────────────────────────────────────────
 @role_required(allowed_roles=["admin"])
 @require_POST
 def send_notification(request):
@@ -747,13 +720,11 @@ def send_notification(request):
     return redirect('admin_notifications')
 
 
-# ── Mark read ────────────────────────────────────────────────
 @role_required(allowed_roles=["admin"])
 def mark_read(request, pk):
     notif = get_object_or_404(Notification, pk=pk)
     notif.isRead = True
     notif.save()
-    # AJAX fetch (POST) → return JSON so the card fades out without reload
     if request.method == 'POST':
         return JsonResponse({'success': True})
     messages.success(request, 'Notification marked as read.')
@@ -768,18 +739,11 @@ def mark_all_read(request):
 
 
 # ============================================================
-#  11. DISPUTES  —  /admin-panel/disputes/
-#  NOTE: No Dispute model in models.py yet.
-#        Add it and uncomment the queryset below.
+#  11. DISPUTES
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def disputes(request):
-    # status = request.GET.get('status', 'all')
-    # qs = Dispute.objects.select_related('customer', 'provider', 'booking').order_by('-created_at')
-    # if status not in ('', 'all'):
-    #     qs = qs.filter(status=status)
     qs = []
-
     context = {
         **get_base_context(request),
         'active_section': 'disputes',
@@ -794,38 +758,29 @@ def disputes(request):
 
 @role_required(allowed_roles=["admin"])
 def resolve_dispute(request, pk):
-    # dispute = get_object_or_404(Dispute, pk=pk)
-    # dispute.status = 'resolved'
-    # dispute.save()
     messages.success(request, f'Dispute #{pk} marked as resolved.')
     return redirect('admin_disputes')
 
 
 # ============================================================
-#  12. ANALYTICS  —  /admin-panel/analytics/
+#  12. ANALYTICS
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def analytics(request):
     today = date.today()
 
-    # ── KPI cards ──────────────────────────────────────────
-    page_views    = User.objects.count() * 15          # estimate
-    # new_signups   = User.objects.filter(
-    #     date_joined__month=today.month,
-    #     date_joined__year=today.year
-    # ).count()
+    page_views = User.objects.count() * 15
     new_signups = User.objects.filter(
-    created_at__month=today.month,
-    created_at__year=today.year
+        created_at__month=today.month,
+        created_at__year=today.year
     ).count()
     avg_rating_val = Review.objects.aggregate(a=Avg('rating'))['a'] or 0
     avg_rating     = round(avg_rating_val, 1)
 
-    total_bookings = Bookings.objects.count()
-    completed      = Bookings.objects.filter(bookingStatus='completed').count()
+    total_bookings  = Bookings.objects.count()
+    completed       = Bookings.objects.filter(bookingStatus='completed').count()
     conversion_rate = round((completed / total_bookings * 100) if total_bookings else 0)
 
-    # ── Horizontal bar: top 6 services by booking count ────
     COLORS = ['#e8560a', '#1e3a5f', '#f9a825', '#16a34a', '#7c3aed', '#dc2626']
     service_qs = (
         Bookings.objects
@@ -844,7 +799,6 @@ def analytics(request):
         for i, item in enumerate(service_qs)
     ]
 
-    # ── Vertical bar: new user registrations last 6 months ─
     six_months_ago = today.replace(day=1) - timedelta(days=150)
     growth_qs = (
         User.objects
@@ -878,7 +832,7 @@ def analytics(request):
 
 
 # ============================================================
-#  13. GENERATE REPORTS  —  /admin-panel/reports/
+#  13. GENERATE REPORTS
 # ============================================================
 @role_required(allowed_roles=["admin"])
 def generate_reports(request):
@@ -889,12 +843,9 @@ def generate_reports(request):
     return render(request, 'garage/Admin/reports.html', context)
 
 
-# ── Export CSV / PDF / Excel ─────────────────────────────────
 @role_required(allowed_roles=["admin"])
 def export_report(request, report_type, fmt):
 
-    # Safe name — uses first_name+last_name fields directly, never get_full_name()
-    # Avoids AttributeError on custom User models + avoids any recursion risk
     def _uname(u):
         fn = (getattr(u, 'first_name', '') or '').strip()
         ln = (getattr(u, 'last_name',  '') or '').strip()
@@ -917,16 +868,35 @@ def export_report(request, report_type, fmt):
         first_day = today.replace(day=1)
         last_day  = today
 
-    # ── BOOKINGS ─────────────────────────────────────────────
     if report_type == 'bookings':
-        qs = Bookings.objects.filter(
-            bookingDate__range=(first_day, last_day)
-        ).select_related('customer__user', 'service', 'provider').order_by('-bookingDate')
+        try:
+            qs = Bookings.objects.filter(
+                bookingDate__gte=first_day,
+                bookingDate__lte=last_day,
+            ).select_related('customer__user', 'service', 'provider').order_by('-bookingDate')
+        except Exception:
+            qs = Bookings.objects.all().select_related(
+                'customer__user', 'service', 'provider'
+            ).order_by('-bookingDate')
+        if not qs.exists():
+            qs = Bookings.objects.all().select_related(
+                'customer__user', 'service', 'provider'
+            ).order_by('-bookingDate')
+            period_label = period_label + ' (All Bookings — none in period)'
         if extra:
             qs = qs.filter(bookingStatus=extra)
-        headers = ['ID', 'Customer', 'Email', 'Service', 'Provider', 'Date', 'Status', 'Notes']
+        headers = ['ID', 'Customer', 'Email', 'Service', 'Provider', 'Date', 'Time', 'Status', 'Amount', 'Vehicle', 'Notes']
         rows = []
         for b in qs:
+            try:
+                pay = b.payment
+                amount = str(pay.amount) if pay else '0'
+            except Exception:
+                amount = '0'
+            try:
+                vehicle = b.customer.vehicleNumber or ''
+            except Exception:
+                vehicle = ''
             rows.append([
                 'BK' + str(b.bookingId),
                 _uname(b.customer.user),
@@ -934,12 +904,14 @@ def export_report(request, report_type, fmt):
                 b.service.serviceName,
                 b.provider.garageName,
                 str(b.bookingDate),
+                str(b.bookingTime) if b.bookingTime else '',
                 b.bookingStatus.replace('_', ' ').title(),
-                b.notes or '',
+                amount,
+                vehicle,
+                getattr(b, 'notes', '') or '',
             ])
         title = 'Bookings Report - ' + period_label
 
-    # ── PAYMENTS ─────────────────────────────────────────────
     elif report_type == 'payments':
         qs = Payments.objects.filter(
             paymentDate__date__range=(first_day, last_day)
@@ -961,7 +933,6 @@ def export_report(request, report_type, fmt):
             ])
         title = 'Payments Report - ' + period_label
 
-    # ── SERVICE PROVIDERS ────────────────────────────────────
     elif report_type == 'providers':
         qs = ServiceProvider.objects.select_related('user').order_by('garageName')
         if extra:
@@ -971,41 +942,52 @@ def export_report(request, report_type, fmt):
         for p in qs:
             rows.append([
                 str(p.providerId),
-                p.garageName,
+                p.garageName or '',
                 _uname(p.user),
-                p.user.email,
-                p.location,
-                str(p.rating),
-                p.approvalStatus.title(),
-                str(p.openingTime),
-                str(p.closingTime),
+                getattr(p.user, 'email', ''),
+                p.location or '',
+                str(p.rating) if p.rating is not None else '0',
+                (p.approvalStatus or '').title(),
+                str(p.openingTime) if p.openingTime else '',
+                str(p.closingTime) if p.closingTime else '',
             ])
         title = 'Service Providers Report - ' + period_label
 
-    # ── USERS ────────────────────────────────────────────────
     elif report_type == 'users':
+        date_field = 'created_at'
         try:
-            qs = User.objects.filter(
-                created_at__date__gte=first_day,
-                created_at__date__lte=last_day,
-            ).order_by('-created_at')
+            User._meta.get_field('created_at')
+        except Exception:
+            date_field = 'date_joined'
+
+        filter_kwargs = {
+            date_field + '__date__gte': first_day,
+            date_field + '__date__lte': last_day,
+        }
+        try:
+            qs = User.objects.filter(**filter_kwargs).order_by('-' + date_field)
+            if not qs.exists():
+                qs = User.objects.all().order_by('-' + date_field)
+                period_label = period_label + ' (All Users — none registered in period)'
         except Exception:
             qs = User.objects.all().order_by('pk')
+
         if extra:
-            try:
-                qs = qs.filter(role=extra.lower())
-            except Exception:
-                pass
+            qs = qs.filter(role=extra.lower())
+
         headers = ['ID', 'Full Name', 'Email', 'Role', 'Joined', 'Active']
         rows = []
         for u in qs:
             try:
-                joined = str(u.created_at.date())
+                raw_date = getattr(u, date_field, None) or getattr(u, 'date_joined', None)
+                joined = str(raw_date.date()) if hasattr(raw_date, 'date') else str(raw_date) if raw_date else ''
             except Exception:
                 joined = ''
+            full_name = ((getattr(u, 'first_name', '') or '') + ' ' + (getattr(u, 'last_name', '') or '')).strip()
+            full_name = full_name or getattr(u, 'email', '') or str(u.pk)
             rows.append([
                 str(u.pk),
-                _uname(u),
+                full_name,
                 getattr(u, 'email', ''),
                 getattr(u, 'role', '').replace('_', ' ').title(),
                 joined,
@@ -1013,12 +995,17 @@ def export_report(request, report_type, fmt):
             ])
         title = 'Users Report - ' + period_label
 
-    # ── INVOICES ─────────────────────────────────────────────
     elif report_type == 'invoices':
         qs = Invoice.objects.filter(
-            invoiceDate__range=(first_day, last_day)
+            invoiceDate__gte=first_day,
+            invoiceDate__lte=last_day,
         ).select_related('booking__customer__user', 'booking__service',
                          'booking__provider').order_by('-invoiceDate')
+        if not qs.exists():
+            qs = Invoice.objects.all().select_related(
+                'booking__customer__user', 'booking__service', 'booking__provider'
+            ).order_by('-invoiceDate')
+            period_label = period_label + ' (All Invoices — none in period)'
         headers = ['Invoice No', 'Customer', 'Service', 'Provider', 'Date', 'Total', 'Tax', 'Discount']
         rows = []
         for inv in qs:
@@ -1034,21 +1021,49 @@ def export_report(request, report_type, fmt):
             ])
         title = 'Invoices Report - ' + period_label
 
-    # ── REVIEWS ──────────────────────────────────────────────
     elif report_type == 'reviews':
         qs = Review.objects.filter(
-            createdAt__date__range=(first_day, last_day)
-        ).select_related('customer__user', 'provider').order_by('-createdAt')
+            createdAt__date__gte=first_day,
+            createdAt__date__lte=last_day,
+        ).select_related('customer__user', 'provider', 'booking__service').order_by('-createdAt')
         if extra == '5':     qs = qs.filter(rating=5)
         elif extra == '4':   qs = qs.filter(rating=4)
         elif extra == 'low': qs = qs.filter(rating__lte=2)
-        headers = ['ID', 'Customer', 'Provider', 'Rating', 'Comment', 'Date']
+        if not qs.exists():
+            qs = Review.objects.all().select_related(
+                'customer__user', 'provider', 'booking__service'
+            ).order_by('-createdAt')
+            if extra == '5':     qs = qs.filter(rating=5)
+            elif extra == '4':   qs = qs.filter(rating=4)
+            elif extra == 'low': qs = qs.filter(rating__lte=2)
+            period_label = period_label + ' (All Reviews — none in period)'
+        headers = ['ID', 'Customer', 'Email', 'Service', 'Provider', 'Rating', 'Comment', 'Date']
         rows = []
         for rv in qs:
+            service_name = ''
+            try:
+                if rv.booking and rv.booking.service:
+                    service_name = rv.booking.service.serviceName
+            except Exception:
+                service_name = ''
+            provider_name = ''
+            try:
+                provider_name = rv.provider.garageName if rv.provider else ''
+            except Exception:
+                provider_name = ''
+            customer_name = ''
+            customer_email = ''
+            try:
+                customer_name  = _uname(rv.customer.user)
+                customer_email = getattr(rv.customer.user, 'email', '')
+            except Exception:
+                pass
             rows.append([
                 str(rv.reviewId),
-                _uname(rv.customer.user),
-                rv.provider.garageName,
+                customer_name,
+                customer_email,
+                service_name,
+                provider_name,
                 str(rv.rating) + '/5',
                 rv.comment or '',
                 str(rv.createdAt.date()),
@@ -1059,9 +1074,7 @@ def export_report(request, report_type, fmt):
         messages.warning(request, 'Unknown report type.')
         return redirect('admin_reports')
 
-    # ════════════════════════════════════════════════
-    #  CSV
-    # ════════════════════════════════════════════════
+    # CSV
     if fmt == 'csv':
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="' + fname + '.csv"'
@@ -1074,9 +1087,7 @@ def export_report(request, report_type, fmt):
         w.writerows(rows)
         return response
 
-    # ════════════════════════════════════════════════
-    #  EXCEL (pip install openpyxl)
-    # ════════════════════════════════════════════════
+    # EXCEL
     elif fmt == 'excel':
         try:
             import io as _io
@@ -1084,11 +1095,7 @@ def export_report(request, report_type, fmt):
             from openpyxl.styles import Font, PatternFill, Alignment
             from openpyxl.cell.cell import MergedCell
         except ImportError:
-            messages.error(
-                request,
-                'Excel export requires openpyxl. '
-                'Run: pip install openpyxl  inside your virtualenv then restart the server.'
-            )
+            messages.error(request, 'Excel export requires openpyxl.')
             return redirect('admin_reports')
 
         wb = openpyxl.Workbook()
@@ -1146,9 +1153,7 @@ def export_report(request, report_type, fmt):
         resp['Content-Disposition'] = 'attachment; filename="' + fname + '.xlsx"'
         return resp
 
-    # ════════════════════════════════════════════════
-    #  PDF (pure HTML, zero dependencies)
-    # ════════════════════════════════════════════════
+    # PDF
     elif fmt == 'pdf':
         th_cells  = ''.join('<th>' + str(h) + '</th>' for h in headers)
         body_rows = ''
@@ -1225,28 +1230,22 @@ def generic_delete(request):
 
 
 # ============================================================
-#  LOGOUT
+#  ADMIN LOGOUT
 # ============================================================
 def admin_logout(request):
     logout(request)
     return redirect('login')
 
 
-
-
-
 # ============================================================
-#  SHARED CUSTOMER CONTEXT  (sidebar live counts)
+#  SHARED CUSTOMER CONTEXT
 # ============================================================
 def get_customer_context(request):
-    """
-    Returns sidebar badge counts for the logged-in customer.
-    """
     customer = getattr(request.user, 'customer_profile', None)
-    pending_bookings = 0
+    pending_bookings  = 0
     upcoming_bookings = 0
-    unread_notifs = 0
- 
+    unread_notifs     = 0
+
     if customer:
         pending_bookings = Bookings.objects.filter(
             customer=customer,
@@ -1257,94 +1256,104 @@ def get_customer_context(request):
             bookingDate__gte=date.today(),
             bookingStatus__in=['pending', 'confirmed']
         ).count()
- 
+
     unread_notifs = Notification.objects.filter(
         user=request.user,
         isRead=False
     ).count()
- 
+
     return {
-        'customer_profile':    customer,
-        'pending_count':       pending_bookings,
-        'upcoming_count':      upcoming_bookings,
-        'unread_notif_count':  unread_notifs,
+        'customer_profile':   customer,
+        'pending_count':      pending_bookings,
+        'upcoming_count':     upcoming_bookings,
+        'unread_notif_count': unread_notifs,
     }
- 
- 
+
+
 # ============================================================
-#  REDIRECT  /customer/  → home
-# ============================================================
-# @role_required(allowed_roles=["customer"])
-# def customerdashboard(request):
-#     return redirect('customer_home')
- 
- 
-# ============================================================
-#  1. HOME / OVERVIEW  —  /customer/home/
+#  CUSTOMER — HOME
 # ============================================================
 @role_required(allowed_roles=["customer"])
 def customer_home(request):
     customer = get_object_or_404(CustomerProfile, user=request.user)
- 
-    # ── Stat cards ─────────────────────────────────────────
+
     total_bookings     = Bookings.objects.filter(customer=customer).count()
     completed_bookings = Bookings.objects.filter(
         customer=customer, bookingStatus='completed'
     ).count()
-    upcoming_bookings  = Bookings.objects.filter(
+    upcoming_bookings = Bookings.objects.filter(
         customer=customer,
         bookingDate__gte=date.today(),
         bookingStatus__in=['pending', 'confirmed']
     ).count()
-    total_spent = (
-        Payments.objects
-        .filter(booking__customer=customer, paymentStatus='completed')
-        .aggregate(total=Sum('amount'))['total'] or 0
+    paid_total = (
+    Payments.objects
+    .filter(booking__customer=customer, paymentStatus='completed')
+    .aggregate(total=Sum('amount'))['total'] or 0
     )
- 
-    # ── Recent 4 bookings ──────────────────────────────────
+    service_total = (
+        Bookings.objects
+        .filter(customer=customer, bookingStatus='completed')
+        .aggregate(total=Sum('service__servicePrice'))['total'] or 0
+    )
+    total_spent = paid_total if paid_total > 0 else service_total
+
     recent_bookings = (
         Bookings.objects
         .filter(customer=customer)
         .select_related('service', 'provider')
         .order_by('-bookingDate', '-createdAt')[:4]
     )
- 
+
+    vehicles = _load_vehicles(customer)
+
     context = {
         **get_customer_context(request),
-        'active': 'home',
- 
-        # stat cards
+        'active':             'home',
         'total_bookings':     total_bookings,
         'completed_bookings': completed_bookings,
         'upcoming_bookings':  upcoming_bookings,
         'total_spent':        total_spent,
- 
-        # recent bookings table
         'recent_bookings':    recent_bookings,
+        'vehicles':           vehicles,
     }
     return render(request, 'garage/Customer/home.html', context)
- 
- 
+
+
 # ============================================================
-#  2. BOOK SERVICE  —  /customer/book/
+#  CUSTOMER — BOOK SERVICE
+#  FIX: passes 'vehicles' list to template so the dropdown works
 # ============================================================
 @role_required(allowed_roles=["customer"])
 def book_service(request):
-    """
-    GET  → Show available services + booking form.
-    POST → Create a new Booking record.
-    """
+    # ✅ FIX: safely get-or-create CustomerProfile so book_service never
+    #         throws a 404 for new customers (same pattern as my_vehicle).
+    customer = CustomerProfile.objects.filter(user=request.user).first()
+    if not customer:
+        customer = CustomerProfile.objects.create(user=request.user)
+ 
     if request.method == 'POST':
-        customer    = get_object_or_404(CustomerProfile, user=request.user)
         service_id  = request.POST.get('service_id')
         provider_id = request.POST.get('provider_id')
         bdate       = request.POST.get('booking_date')
         btime       = request.POST.get('booking_time') or None
         notes       = request.POST.get('notes', '').strip()
  
+        # ✅ FIX: read vehicle_id and resolve to a vehicle
+        vehicle_id  = request.POST.get('vehicle_id', '').strip()
+        vehicle_tag = ''
+        if vehicle_id:
+            all_vehicles = _load_vehicles(customer)
+            for v in all_vehicles:
+                if str(v.id) == vehicle_id:
+                    vehicle_tag = f'[Vehicle: {v.vehicleNumber} — {v.vehicleModel}]'
+                    break
+        # Prepend vehicle info to notes so it is visible in the booking
+        if vehicle_tag:
+            notes = f'{vehicle_tag}\n{notes}'.strip()
+ 
         if not service_id or not bdate:
-            messages.error(request, 'Please select a service and booking date.')
+            messages.error(request, 'Please select a service and a booking date.')
             return redirect('book_service')
  
         service  = get_object_or_404(Services, pk=service_id, isAvailable=True)
@@ -1356,11 +1365,10 @@ def book_service(request):
             service       = service,
             bookingDate   = bdate,
             bookingTime   = btime,
-            notes         = notes,
+            notes         = notes,   # now includes vehicle info
             bookingStatus = 'pending',
         )
  
-        # Send a confirmation notification to the customer
         Notification.objects.create(
             user             = request.user,
             notificationType = 'booking_confirmed',
@@ -1375,67 +1383,85 @@ def book_service(request):
         messages.success(request, 'Booking confirmed! Check My Bookings for status.')
         return redirect('my_bookings')
  
-    # ── GET: show all available services ─────────────────
-    all_services  = (
+    all_services = (
         Services.objects
         .filter(isAvailable=True)
         .select_related('providerId')
         .order_by('serviceName')
     )
     all_providers = ServiceProvider.objects.filter(approvalStatus='approved')
+    vehicles      = _load_vehicles(customer)
  
     context = {
         **get_customer_context(request),
-        'active':       'book',
-        'services':     all_services,
-        'providers':    all_providers,
-        'today_iso':    date.today().isoformat(),
+        'active':    'book',
+        'services':  all_services,
+        'providers': all_providers,
+        'vehicles':  vehicles,
+        'today_iso': date.today().isoformat(),
     }
     return render(request, 'garage/Customer/book_service.html', context)
- 
- 
+
+
 # ============================================================
-#  3. MY BOOKINGS  —  /customer/bookings/
+#  CUSTOMER — MY BOOKINGS
 # ============================================================
 @role_required(allowed_roles=["customer"])
 def my_bookings(request):
     customer = get_object_or_404(CustomerProfile, user=request.user)
     status   = request.GET.get('status', 'all')
     page     = request.GET.get('page', 1)
- 
+
+    # All bookings for this customer (used for counts)
+    all_qs = Bookings.objects.filter(customer=customer)
+
+    # Counts for stats chips
+    counts = all_qs.aggregate(
+        total       = Count('bookingId'),
+        pending     = Count('bookingId', filter=Q(bookingStatus='pending')),
+        confirmed   = Count('bookingId', filter=Q(bookingStatus='confirmed')),
+        in_progress = Count('bookingId', filter=Q(bookingStatus='in_progress')),
+        completed   = Count('bookingId', filter=Q(bookingStatus='completed')),
+        cancelled   = Count('bookingId', filter=Q(bookingStatus='cancelled')),
+    )
+
+    # Filtered bookings for display
     qs = (
-        Bookings.objects
-        .filter(customer=customer)
+        all_qs
         .select_related('service', 'provider')
         .order_by('-bookingDate', '-createdAt')
     )
- 
+
     if status not in ('', 'all'):
         qs = qs.filter(bookingStatus=status)
- 
+
     paginator     = Paginator(qs, 10)
     bookings_page = paginator.get_page(page)
- 
+
     context = {
         **get_customer_context(request),
-        'active':    'bookings',
-        'bookings':  bookings_page,
-        'status':    status,
+        'active':            'bookings',
+        'bookings':          bookings_page,
+        'status':            status,
+        'total_count':       counts['total'],
+        'pending_count':     counts['pending'],
+        'confirmed_count':   counts['confirmed'],
+        'in_progress_count': counts['in_progress'],
+        'completed_count':   counts['completed'],
+        'cancelled_count':   counts['cancelled'],
     }
     return render(request, 'garage/Customer/my_bookings.html', context)
- 
- 
-# ── Cancel a booking ─────────────────────────────────────────
+
+
 @role_required(allowed_roles=["customer"])
 @require_POST
 def cancel_booking(request, pk):
     customer = get_object_or_404(CustomerProfile, user=request.user)
     booking  = get_object_or_404(Bookings, pk=pk, customer=customer)
- 
+
     if booking.bookingStatus in ('pending', 'confirmed'):
         booking.bookingStatus = 'cancelled'
         booking.save()
-        # Notify customer of cancellation
         Notification.objects.create(
             user             = request.user,
             notificationType = 'booking_cancelled',
@@ -1448,30 +1474,36 @@ def cancel_booking(request, pk):
         messages.success(request, f'Booking #{booking.bookingId} cancelled successfully.')
     else:
         messages.error(request, 'This booking cannot be cancelled.')
- 
+
     return redirect('my_bookings')
- 
- 
+
+
 # ============================================================
-#  4. SERVICE HISTORY  —  /customer/history/
+#  CUSTOMER — SERVICE HISTORY
 # ============================================================
 @role_required(allowed_roles=["customer"])
 def service_history(request):
     customer = get_object_or_404(CustomerProfile, user=request.user)
- 
+
     completed = (
         Bookings.objects
         .filter(customer=customer, bookingStatus='completed')
         .select_related('service', 'provider')
-        .prefetch_related('review', 'invoice')
         .order_by('-bookingDate')
     )
- 
-    # Attach invoice and review to each booking for the template
+
     history = []
     for b in completed:
-        invoice = getattr(b, 'invoice', None)
-        review  = getattr(b, 'review', None)
+        invoice = None
+        review  = None
+        try:
+            invoice = b.invoice
+        except Exception:
+            pass
+        try:
+            review = b.review
+        except Exception:
+            pass
         history.append({
             'booking': b,
             'invoice': invoice,
@@ -1480,42 +1512,86 @@ def service_history(request):
                 b.payment.amount if hasattr(b, 'payment') and b.payment else 0
             ),
         })
- 
+
     context = {
         **get_customer_context(request),
         'active':  'history',
         'history': history,
     }
     return render(request, 'garage/Customer/service_history.html', context)
- 
- 
-# ── Download invoice ──────────────────────────────────────────
+
+
+@role_required(allowed_roles=["customer"])
+def customer_invoice_view(request, pk):
+    customer = get_object_or_404(CustomerProfile, user=request.user)
+    invoice  = get_object_or_404(
+        Invoice.objects.select_related(
+            'booking__customer__user', 'booking__service',
+            'booking__provider', 'payment'
+        ),
+        pk=pk, booking__customer=customer
+    )
+    b        = invoice.booking
+    base_amt = float(invoice.totalAmount) - float(invoice.taxAmount) + float(invoice.discountAmount)
+    context  = {
+        **get_customer_context(request),
+        'active':        'history',
+        'invoice':       invoice,
+        'booking':       b,
+        'base_amt':      round(base_amt, 2),
+        'tax_amt':       float(invoice.taxAmount),
+        'disc_amt':      float(invoice.discountAmount),
+        'total_amt':     float(invoice.totalAmount),
+        'service_price': float(b.service.servicePrice),
+    }
+    return render(request, 'garage/Customer/customer_invoice_view.html', context)
+
+
 @role_required(allowed_roles=["customer"])
 def customer_download_invoice(request, pk):
     customer = get_object_or_404(CustomerProfile, user=request.user)
-    invoice  = get_object_or_404(Invoice, pk=pk, booking__customer=customer)
- 
+    invoice  = get_object_or_404(
+        Invoice.objects.select_related(
+            'booking__customer__user', 'booking__service',
+            'booking__provider__user', 'payment'
+        ),
+        pk=pk, booking__customer=customer
+    )
+    b        = invoice.booking
+    base_amt = float(invoice.totalAmount) - float(invoice.taxAmount) + float(invoice.discountAmount)
+    u = request.user
+    customer_name = (f"{u.first_name} {u.last_name}".strip()) or getattr(u, 'username', u.email)
+
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = (
-        f'attachment; filename="invoice_{invoice.invoiceNumber}.csv"'
+        f'attachment; filename="Invoice-{invoice.invoiceNumber}.csv"'
     )
     writer = csv.writer(response)
-    writer.writerow(['E-Garage Invoice'])
+    writer.writerow(['E-GARAGE — TAX INVOICE'])
     writer.writerow([])
     writer.writerow(['Invoice No.',    invoice.invoiceNumber])
-    writer.writerow(['Date',           invoice.invoiceDate])
-    writer.writerow(['Customer',       request.user.get_full_name()])
-    writer.writerow(['Service',        invoice.booking.service.serviceName])
-    writer.writerow(['Provider',       invoice.booking.provider.garageName])
+    writer.writerow(['Invoice Date',   invoice.invoiceDate])
+    writer.writerow(['Booking ID',     f'#BK{b.bookingId}'])
+    writer.writerow(['Service Date',   b.bookingDate])
     writer.writerow([])
-    writer.writerow(['Service Amount', invoice.totalAmount - invoice.taxAmount + invoice.discountAmount])
-    writer.writerow(['Tax',            invoice.taxAmount])
-    writer.writerow(['Discount',       invoice.discountAmount])
-    writer.writerow(['Total Amount',   invoice.totalAmount])
+    writer.writerow(['FROM (Provider)', b.provider.garageName])
+    writer.writerow(['Email',           b.provider.user.email])
+    writer.writerow([])
+    writer.writerow(['TO (Customer)',   customer_name])
+    writer.writerow(['Email',           request.user.email])
+    writer.writerow(['Vehicle',         b.customer.vehicleNumber])
+    writer.writerow([])
+    writer.writerow(['DESCRIPTION',     'AMOUNT'])
+    writer.writerow([b.service.serviceName, f'Rs.{float(b.service.servicePrice):.2f}'])
+    writer.writerow(['GST',             f'Rs.{float(invoice.taxAmount):.2f}'])
+    writer.writerow(['Discount',        f'-Rs.{float(invoice.discountAmount):.2f}'])
+    writer.writerow(['TOTAL PAYABLE',   f'Rs.{float(invoice.totalAmount):.2f}'])
+    writer.writerow([])
+    writer.writerow(['Payment Method',  invoice.payment.paymentMethod if invoice.payment else '—'])
+    writer.writerow(['Payment Status',  invoice.payment.paymentStatus if invoice.payment else '—'])
     return response
- 
- 
-# ── Submit a review ───────────────────────────────────────────
+
+
 @role_required(allowed_roles=["customer"])
 @require_POST
 def submit_review(request, booking_pk):
@@ -1523,15 +1599,17 @@ def submit_review(request, booking_pk):
     booking  = get_object_or_404(
         Bookings, pk=booking_pk, customer=customer, bookingStatus='completed'
     )
- 
-    # Prevent duplicate reviews
-    if hasattr(booking, 'review'):
-        messages.warning(request, 'You have already reviewed this booking.')
-        return redirect('service_history')
- 
+
+    try:
+        if booking.review:
+            messages.warning(request, 'You have already reviewed this booking.')
+            return redirect('service_history')
+    except Exception:
+        pass
+
     rating  = request.POST.get('rating', 5)
     comment = request.POST.get('comment', '').strip()
- 
+
     Review.objects.create(
         booking  = booking,
         customer = customer,
@@ -1539,125 +1617,325 @@ def submit_review(request, booking_pk):
         rating   = int(rating),
         comment  = comment,
     )
- 
-    # Update the provider's average rating
+
     avg = Review.objects.filter(
         provider=booking.provider
     ).aggregate(avg=Avg('rating'))['avg'] or 0
     booking.provider.rating = round(avg, 1)
     booking.provider.save()
- 
+
     messages.success(request, 'Thank you for your review!')
     return redirect('service_history')
- 
- 
+
+
 # ============================================================
-#  5. MY VEHICLE  —  /customer/vehicle/
+#  CUSTOMER — MY VEHICLE
+#  FIX: Supports add / edit / delete via action POST param.
+#       Shows all vehicles as cards. Works with existing
+#       CustomerProfile fields — NO new model / migration needed.
+#
+#  HOW IT WORKS (no Vehicle model):
+#  We store extra vehicles in a simple JSON list on the
+#  CustomerProfile.  The *primary* vehicle stays in the existing
+#  vehicleType/vehicleNumber/vehicleModel/vehicleYear/vehicleColor
+#  fields so nothing else in the project breaks.
+#  Extra vehicles are serialised into a TextField called
+#  `extraVehicles`.  If that field doesn't exist yet, we fall back
+#  to showing only the primary vehicle — nothing crashes.
+#
+#  The template expects a list of objects with these attributes:
+#    id, vehicleType, vehicleNumber, vehicleModel,
+#    vehicleYear, vehicleColor, services_done, last_service,
+#    get_vehicleType_display()
 # ============================================================
-@role_required(allowed_roles=["customer"])
-def my_vehicle(request):
+import json as _json
+
+
+class _FakeVehicle:
+    """Lightweight dict-wrapper that behaves like a Vehicle ORM row."""
+    LABELS = {'car': 'Car', 'bike': 'Bike / Two-Wheeler'}
+
+    def __init__(self, data):
+        self.id            = data.get('id', 0)
+        self.vehicleType   = data.get('vehicleType', 'car')
+        self.vehicleNumber = data.get('vehicleNumber', '')
+        self.vehicleModel  = data.get('vehicleModel', '')
+        self.vehicleYear   = data.get('vehicleYear') or None
+        self.vehicleColor  = data.get('vehicleColor', '')
+        self.services_done = data.get('services_done', 0)
+        self.last_service  = data.get('last_service')
+
+    def get_vehicleType_display(self):
+        return self.LABELS.get(self.vehicleType, self.vehicleType)
+
+    def to_dict(self):
+        return {
+            'id':            self.id,
+            'vehicleType':   self.vehicleType,
+            'vehicleNumber': self.vehicleNumber,
+            'vehicleModel':  self.vehicleModel,
+            'vehicleYear':   self.vehicleYear,
+            'vehicleColor':  self.vehicleColor,
+        }
+
+
+def _load_vehicles(customer):
     """
-    GET  → Show current vehicle details with edit form.
-    POST → Update or create CustomerProfile with new vehicle info.
+    Return list of _FakeVehicle objects for this customer.
+ 
+    FIX: The old version only added the primary vehicle when BOTH
+    vehicleNumber AND vehicleModel were non-empty.  That meant a brand-new
+    customer who added their first vehicle via the 'add' action (which
+    writes to extraVehicles) would see nothing here because the primary
+    fields were still blank.
+ 
+    New logic:
+      1. Always try to surface the primary vehicle if either field is set.
+      2. Also load every entry from extraVehicles JSON.
+      3. Deduplicate by vehicleNumber so no double-entry if the same plate
+         somehow ends up in both places.
     """
-    customer = CustomerProfile.objects.filter(user=request.user).first()
+    vehicles = []
+    seen_numbers = set()
  
-    if request.method == 'POST':
-        vehicle_type   = request.POST.get('vehicle_type', 'car')
-        vehicle_number = request.POST.get('vehicle_number', '').strip().upper()
-        vehicle_model  = request.POST.get('vehicle_model', '').strip()
-        vehicle_year   = request.POST.get('vehicle_year') or None
-        vehicle_color  = request.POST.get('vehicle_color', '').strip()
+    # ── Primary vehicle (id = 1) ──────────────────────────────────────────
+    primary_number = (getattr(customer, 'vehicleNumber', '') or '').strip()
+    primary_model  = (getattr(customer, 'vehicleModel',  '') or '').strip()
  
-        if not vehicle_number or not vehicle_model:
-            messages.error(request, 'Vehicle number and model are required.')
-            return redirect('my_vehicle')
+    # Include primary if at least one identifying field is present
+    if primary_number or primary_model:
+        vehicles.append(_FakeVehicle({
+            'id':            1,
+            'vehicleType':   getattr(customer, 'vehicleType',  'car'),
+            'vehicleNumber': primary_number,
+            'vehicleModel':  primary_model,
+            'vehicleYear':   getattr(customer, 'vehicleYear',  None),
+            'vehicleColor':  getattr(customer, 'vehicleColor',  ''),
+        }))
+        seen_numbers.add(primary_number)
  
-        if customer:
-            # Update existing profile
-            customer.vehicleType   = vehicle_type
-            customer.vehicleNumber = vehicle_number
-            customer.vehicleModel  = vehicle_model
-            customer.vehicleYear   = vehicle_year
-            customer.vehicleColor  = vehicle_color
-            customer.save()
-        else:
-            # Create new customer profile
-            customer = CustomerProfile.objects.create(
-                user          = request.user,
-                vehicleType   = vehicle_type,
-                vehicleNumber = vehicle_number,
-                vehicleModel  = vehicle_model,
-                vehicleYear   = vehicle_year,
-                vehicleColor  = vehicle_color,
+    # ── Extra vehicles stored in CustomerProfile.extraVehicles (JSON) ────
+    raw = getattr(customer, 'extraVehicles', None)
+    if raw:
+        try:
+            extras = _json.loads(raw)
+            for item in extras:
+                num = (item.get('vehicleNumber') or '').strip()
+                if num not in seen_numbers:          # skip duplicates
+                    vehicles.append(_FakeVehicle(item))
+                    seen_numbers.add(num)
+        except Exception:
+            pass
+ 
+    return vehicles
+ 
+ 
+def _save_vehicles(customer, vehicles):
+    """
+    Persist vehicles back to CustomerProfile.
+ 
+    The vehicle with the lowest id becomes the primary (stored in the
+    normal CustomerProfile fields).  All others are stored as JSON in
+    CustomerProfile.extraVehicles if that field exists.
+    """
+    if not vehicles:
+        customer.vehicleType   = 'car'
+        customer.vehicleNumber = ''
+        customer.vehicleModel  = ''
+        customer.vehicleYear   = None
+        customer.vehicleColor  = ''
+        if hasattr(customer, 'extraVehicles'):
+            customer.extraVehicles = ''
+        customer.save()
+        return
+ 
+    vehicles_sorted = sorted(vehicles, key=lambda v: v.id)
+    primary = vehicles_sorted[0]
+ 
+    customer.vehicleType   = primary.vehicleType
+    customer.vehicleNumber = primary.vehicleNumber
+    customer.vehicleModel  = primary.vehicleModel
+    customer.vehicleYear   = primary.vehicleYear
+    customer.vehicleColor  = primary.vehicleColor
+ 
+    extras      = [v.to_dict() for v in vehicles_sorted[1:]]
+    extras_json = _json.dumps(extras) if extras else ''
+ 
+    if hasattr(customer, 'extraVehicles'):
+        customer.extraVehicles = extras_json
+        customer.save()
+    else:
+        customer.save()
+        if extras:
+            import logging
+            logging.getLogger(__name__).warning(
+                "CustomerProfile has no 'extraVehicles' field — "
+                "extra vehicles for customer pk=%s were NOT saved. "
+                "Add the field and run migrations.", customer.pk
             )
  
-        messages.success(request, 'Vehicle details updated successfully!')
-        return redirect('my_vehicle')
- 
-    # Count services done on this vehicle
-    services_done = 0
-    last_service  = None
-    if customer:
-        services_done = Bookings.objects.filter(
-            customer=customer, bookingStatus='completed'
+
+def _next_vehicle_id(vehicles):
+    if not vehicles:
+        return 1
+    return max(v.id for v in vehicles) + 1
+
+
+@role_required(allowed_roles=["customer"])
+def my_vehicle(request):
+    customer = CustomerProfile.objects.filter(user=request.user).first()
+    if not customer:
+        customer = CustomerProfile.objects.create(user=request.user)
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'add')
+        vehicles = _load_vehicles(customer)
+
+        # ── ADD ──────────────────────────────────────────────
+        if action == 'add':
+            vehicle_number = request.POST.get('vehicle_number', '').strip().upper()
+            vehicle_model  = request.POST.get('vehicle_model', '').strip()
+
+            if not vehicle_number or not vehicle_model:
+                messages.error(request, 'Vehicle number and model are required.')
+                return redirect('my_vehicle')
+
+            # Duplicate check
+            existing_numbers = [v.vehicleNumber for v in vehicles]
+            if vehicle_number in existing_numbers:
+                messages.error(request, f'{vehicle_number} is already registered.')
+                return redirect('my_vehicle')
+
+            new_v = _FakeVehicle({
+                'id':            _next_vehicle_id(vehicles),
+                'vehicleType':   request.POST.get('vehicle_type', 'car'),
+                'vehicleNumber': vehicle_number,
+                'vehicleModel':  vehicle_model,
+                'vehicleYear':   request.POST.get('vehicle_year') or None,
+                'vehicleColor':  request.POST.get('vehicle_color', '').strip(),
+            })
+            vehicles.append(new_v)
+            _save_vehicles(customer, vehicles)
+            messages.success(request, 'Vehicle added successfully.')
+
+        # ── EDIT ─────────────────────────────────────────────
+        elif action == 'edit':
+            # ✅ FIX: safe int parsing
+            try:
+                vid = int(request.POST.get('vehicle_id') or 0)
+            except (ValueError, TypeError):
+                vid = 0
+            vehicle_number = request.POST.get('vehicle_number', '').strip().upper()
+            vehicle_model  = request.POST.get('vehicle_model', '').strip()
+
+            if not vehicle_number or not vehicle_model:
+                messages.error(request, 'Vehicle number and model are required.')
+                return redirect('my_vehicle')
+
+            for v in vehicles:
+                if v.id == vid:
+                    # Duplicate check (allow same number on same vehicle)
+                    others = [x.vehicleNumber for x in vehicles if x.id != vid]
+                    if vehicle_number in others:
+                        messages.error(request, f'{vehicle_number} is already registered.')
+                        # return redirect('my_vehicle')
+                        next_page = request.POST.get('next', 'my_vehicle')
+                        return redirect(next_page)
+                    v.vehicleType   = request.POST.get('vehicle_type', v.vehicleType)
+                    v.vehicleNumber = vehicle_number
+                    v.vehicleModel  = vehicle_model
+                    v.vehicleYear   = request.POST.get('vehicle_year') or None
+                    v.vehicleColor  = request.POST.get('vehicle_color', '').strip()
+                    break
+
+            _save_vehicles(customer, vehicles)
+            messages.success(request, 'Vehicle updated successfully.')
+
+        # ── DELETE ───────────────────────────────────────────
+        elif action == 'delete':
+            # ✅ FIX: use 'or 0' so an empty string never crashes int()
+            try:
+                vid = int(request.POST.get('vehicle_id') or 0)
+            except (ValueError, TypeError):
+                vid = 0
+            if not vid:
+                messages.error(request, 'Could not identify vehicle to delete.')
+                return redirect('my_vehicle')
+            vehicles = [v for v in vehicles if v.id != vid]
+            _save_vehicles(customer, vehicles)
+            messages.success(request, 'Vehicle deleted successfully.')
+
+        # return redirect('my_vehicle')   # PRG pattern
+        next_page = request.POST.get('next', 'my_vehicle')
+        return redirect(next_page)
+
+    # ── GET: load vehicles and annotate booking stats ─────────
+    vehicles = _load_vehicles(customer)
+
+    for v in vehicles:
+        # ✅ FIX: filter bookings by THIS vehicle's number (stored in notes)
+        #         so each card shows its own count, not the total for all vehicles.
+        v.services_done = Bookings.objects.filter(
+            customer=customer,
+            bookingStatus='completed',
+            notes__icontains=v.vehicleNumber,
         ).count()
         last_bk = (
             Bookings.objects
-            .filter(customer=customer, bookingStatus='completed')
+            .filter(
+                customer=customer,
+                bookingStatus='completed',
+                notes__icontains=v.vehicleNumber,
+            )
             .order_by('-bookingDate')
             .first()
         )
-        if last_bk:
-            last_service = last_bk.bookingDate
- 
+        v.last_service = last_bk.bookingDate if last_bk else None
+
     context = {
         **get_customer_context(request),
-        'active':        'vehicle',
-        'customer':      customer,
-        'services_done': services_done,
-        'last_service':  last_service,
+        'active':   'vehicle',
+        'vehicles': vehicles,
     }
     return render(request, 'garage/Customer/my_vehicle.html', context)
- 
- 
+
+
 # ============================================================
-#  6. PAYMENTS  —  /customer/payments/
+#  CUSTOMER — PAYMENTS
 # ============================================================
 @role_required(allowed_roles=["customer"])
 def my_payments(request):
     customer = get_object_or_404(CustomerProfile, user=request.user)
- 
+
     qs = (
         Payments.objects
         .filter(booking__customer=customer)
         .select_related('booking__service', 'booking__provider')
         .order_by('-paymentDate')
     )
- 
-    # ── Payment summary stats ──────────────────────────────
+
     totals = qs.aggregate(
         total_paid    = Sum('amount', filter=Q(paymentStatus='completed')),
         total_pending = Sum('amount', filter=Q(paymentStatus='pending')),
         total_refund  = Sum('amount', filter=Q(paymentStatus='refunded')),
     )
- 
+
     paginator    = Paginator(qs, 10)
     payment_page = paginator.get_page(request.GET.get('page', 1))
- 
+
     context = {
         **get_customer_context(request),
-        'active':         'payments',
-        'payments':       payment_page,
-        'total_paid':     totals['total_paid']    or 0,
-        'total_pending':  totals['total_pending'] or 0,
-        'total_refund':   totals['total_refund']  or 0,
+        'active':        'payments',
+        'payments':      payment_page,
+        'total_paid':    totals['total_paid']    or 0,
+        'total_pending': totals['total_pending'] or 0,
+        'total_refund':  totals['total_refund']  or 0,
     }
     return render(request, 'garage/Customer/my_payments.html', context)
- 
- 
+
+
 # ============================================================
-#  7. NOTIFICATIONS  —  /customer/notifications/
+#  CUSTOMER — NOTIFICATIONS
 # ============================================================
 @role_required(allowed_roles=["customer"])
 def customer_notifications(request):
@@ -1666,15 +1944,14 @@ def customer_notifications(request):
         .filter(user=request.user)
         .order_by('-createdAt')
     )
- 
-    # Stats
-    total_sent  = notifs.count()
-    total_read  = notifs.filter(isRead=True).count()
+
+    total_sent   = notifs.count()
+    total_read   = notifs.filter(isRead=True).count()
     total_unread = notifs.filter(isRead=False).count()
- 
-    paginator   = Paginator(notifs, 15)
-    notif_page  = paginator.get_page(request.GET.get('page', 1))
- 
+
+    paginator  = Paginator(notifs, 15)
+    notif_page = paginator.get_page(request.GET.get('page', 1))
+
     context = {
         **get_customer_context(request),
         'active':        'notifications',
@@ -1684,49 +1961,45 @@ def customer_notifications(request):
         'total_unread':  total_unread,
     }
     return render(request, 'garage/Customer/notifications.html', context)
- 
- 
-# ── Mark single notification as read ─────────────────────────
+
+
 @role_required(allowed_roles=["customer"])
 def mark_notif_read(request, pk):
     notif = get_object_or_404(Notification, pk=pk, user=request.user)
     notif.isRead = True
     notif.save()
     return redirect('customer_notifications')
- 
- 
-# ── Mark all notifications as read ───────────────────────────
+
+
 @role_required(allowed_roles=["customer"])
 def mark_all_notif_read(request):
     Notification.objects.filter(user=request.user, isRead=False).update(isRead=True)
     messages.success(request, 'All notifications marked as read.')
     return redirect('customer_notifications')
- 
- 
+
+
 # ============================================================
-#  8. MY PROFILE  —  /customer/profile/
+#  CUSTOMER — PROFILE
 # ============================================================
 @role_required(allowed_roles=["customer"])
 def customer_profile(request):
     if request.method == 'POST':
         action = request.POST.get('action', 'profile')
- 
+
         if action == 'profile':
-            # Update personal info
-            user           = request.user
+            user            = request.user
             user.first_name = request.POST.get('first_name', '').strip()
             user.last_name  = request.POST.get('last_name', '').strip()
             user.mobile     = request.POST.get('mobile', '').strip()
             user.gender     = request.POST.get('gender', '').strip()
             user.save()
             messages.success(request, 'Profile updated successfully!')
- 
+
         elif action == 'password':
-            # Change password
-            current_pw  = request.POST.get('current_password', '')
-            new_pw      = request.POST.get('new_password', '')
-            confirm_pw  = request.POST.get('confirm_password', '')
- 
+            current_pw = request.POST.get('current_password', '')
+            new_pw     = request.POST.get('new_password', '')
+            confirm_pw = request.POST.get('confirm_password', '')
+
             if not request.user.check_password(current_pw):
                 messages.error(request, 'Current password is incorrect.')
             elif new_pw != confirm_pw:
@@ -1736,89 +2009,73 @@ def customer_profile(request):
             else:
                 request.user.set_password(new_pw)
                 request.user.save()
-                messages.success(
-                    request,
-                    'Password changed! Please log in again.'
-                )
+                messages.success(request, 'Password changed! Please log in again.')
                 return redirect('login')
- 
+
         return redirect('customer_profile')
- 
-    # ── GET ──────────────────────────────────────────────
+
     customer = CustomerProfile.objects.filter(user=request.user).first()
- 
-    # Account summary stats
     total_bookings = 0
     member_since   = getattr(request.user, 'created_at', request.user.date_joined)
     if customer:
         total_bookings = Bookings.objects.filter(customer=customer).count()
- 
+
     context = {
         **get_customer_context(request),
-        'active':          'profile',
-        'customer':        customer,
-        'total_bookings':  total_bookings,
-        'member_since':    member_since,
+        'active':         'profile',
+        'customer':       customer,
+        'total_bookings': total_bookings,
+        'member_since':   member_since,
     }
     return render(request, 'garage/Customer/profile.html', context)
- 
- 
+
+
 # ============================================================
 #  CUSTOMER LOGOUT
 # ============================================================
- 
 def customer_logout(request):
     auth_logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('login')
 
 
-
-
-
-
-# @role_required(allowed_roles=["service_provider"])
-# def serviceProviderdashboard(request):
-#     return render(request, "garage/Admin/ServiceProvider/serviceprovider_dashboard.html")
-
-
 # ============================================================
-#  SHARED PROVIDER CONTEXT  (sidebar live counts)
+#  SHARED PROVIDER CONTEXT
 # ============================================================
 def get_provider_context(request):
-    provider = ServiceProvider.objects.filter(user=request.user).first()
-    pending_count   = 0
-    unread_count    = 0
-    total_reviews   = 0
- 
+    provider      = ServiceProvider.objects.filter(user=request.user).first()
+    pending_count = 0
+    unread_count  = 0
+    total_reviews = 0
+
     if provider:
         pending_count = Bookings.objects.filter(
             provider=provider, bookingStatus='pending'
         ).count()
         total_reviews = Review.objects.filter(provider=provider).count()
- 
+
     unread_count = Notification.objects.filter(
         user=request.user, isRead=False
     ).count()
- 
+
     return {
-        'provider':              provider,
+        'provider':               provider,
         'pending_bookings_count': pending_count,
-        'unread_notif_count':    unread_count,
-        'total_reviews':         total_reviews,
+        'unread_notif_count':     unread_count,
+        'total_reviews':          total_reviews,
     }
- 
- 
+
+
 # ============================================================
-#  REDIRECT  /serviceProvider/  →  overview
+#  SERVICE PROVIDER REDIRECT
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
 def serviceProviderdashboard(request):
     return redirect('provider_overview')
- 
- 
+
+
 # ============================================================
-#  1. OVERVIEW  —  /serviceProvider/overview/
+#  PROVIDER — OVERVIEW
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
 def provider_overview(request):
@@ -1826,11 +2083,11 @@ def provider_overview(request):
     if not provider:
         messages.warning(request, 'Your provider profile is not set up yet.')
         return redirect('provider_profile')
- 
+
     today = date.today()
- 
-    total_bookings  = Bookings.objects.filter(provider=provider).count()
-    pending_count   = Bookings.objects.filter(provider=provider, bookingStatus='pending').count()
+
+    total_bookings = Bookings.objects.filter(provider=provider).count()
+    pending_count  = Bookings.objects.filter(provider=provider, bookingStatus='pending').count()
     monthly_revenue = (
         Payments.objects
         .filter(booking__provider=provider, paymentStatus='completed',
@@ -1842,19 +2099,16 @@ def provider_overview(request):
         bookingDate__month=today.month,
         bookingDate__year=today.year
     ).count()
- 
-    # Completion rate
-    completed = Bookings.objects.filter(provider=provider, bookingStatus='completed').count()
+
+    completed       = Bookings.objects.filter(provider=provider, bookingStatus='completed').count()
     completion_rate = round((completed / total_bookings * 100) if total_bookings else 0)
- 
-    # Avg duration from services
+
     avg_duration = round(
         Services.objects.filter(providerId=provider)
         .aggregate(avg=AvgF('estimatedDuration'))['avg'] or 0
     )
     services_count = Services.objects.filter(providerId=provider, isAvailable=True).count()
- 
-    # Monthly booking trend (last 7 months)
+
     six_months_ago = (today.replace(day=1) - timedelta(days=180))
     monthly_qs = (
         Bookings.objects
@@ -1873,15 +2127,14 @@ def provider_overview(request):
         }
         for m in monthly_qs
     ]
- 
-    # Today's bookings
+
     todays_bookings = (
         Bookings.objects
         .filter(provider=provider, bookingDate=today)
         .select_related('customer__user', 'service')
         .order_by('bookingTime')
     )
- 
+
     context = {
         **get_provider_context(request),
         'active':           'overview',
@@ -1897,17 +2150,17 @@ def provider_overview(request):
         'todays_bookings':  todays_bookings,
     }
     return render(request, 'garage/Provider/overview.html', context)
- 
- 
+
+
 # ============================================================
-#  2. BOOKINGS  —  /serviceProvider/bookings/
+#  PROVIDER — BOOKINGS
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
 def provider_bookings(request):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     status   = request.GET.get('status', 'all')
     page     = request.GET.get('page', 1)
- 
+
     qs = (
         Bookings.objects
         .filter(provider=provider)
@@ -1916,17 +2169,27 @@ def provider_bookings(request):
     )
     if status not in ('', 'all'):
         qs = qs.filter(bookingStatus=status)
- 
+
     counts = Bookings.objects.filter(provider=provider).aggregate(
         pending    = Count('bookingId', filter=Q(bookingStatus='pending')),
         inprogress = Count('bookingId', filter=Q(bookingStatus='in_progress')),
         completed  = Count('bookingId', filter=Q(bookingStatus='completed')),
         cancelled  = Count('bookingId', filter=Q(bookingStatus='cancelled')),
     )
- 
-    paginator     = Paginator(qs, 12)
+
+    booking_list = list(qs)
+    booking_ids  = [b.bookingId for b in booking_list]
+    invoice_map  = {}
+    for inv in Invoice.objects.filter(booking__bookingId__in=booking_ids):
+        invoice_map[inv.booking_id] = inv
+
+    for b in booking_list:
+        b.has_invoice = b.bookingId in invoice_map
+        b.invoice_obj = invoice_map.get(b.bookingId, None)
+
+    paginator     = Paginator(booking_list, 12)
     bookings_page = paginator.get_page(page)
- 
+
     context = {
         **get_provider_context(request),
         'active':           'bookings',
@@ -1938,85 +2201,150 @@ def provider_bookings(request):
         'cancelled_count':  counts['cancelled'],
     }
     return render(request, 'garage/Provider/bookings.html', context)
- 
- 
-# ── Booking detail ────────────────────────────────────────────
+
+
 @role_required(allowed_roles=["service_provider"])
-def provider_booking_detail(request, pk):
+def provider_booking_detail(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    booking  = get_object_or_404(Bookings, pk=pk, provider=provider)
-    context  = {
+    booking  = get_object_or_404(
+        Bookings.objects.select_related('customer__user', 'service'),
+        bookingId=booking_id,
+        provider=provider,
+    )
+
+    has_invoice = False
+    invoice = None
+    try:
+        invoice = booking.invoice
+        if invoice:
+            has_invoice = True
+    except Exception:
+        pass
+
+    context = {
         **get_provider_context(request),
-        'active':  'bookings',
-        'booking': booking,
+        'active':      'bookings',
+        'booking':     booking,
+        'has_invoice': has_invoice,
+        'invoice':     invoice,
     }
+    html = f"""
+    {{% extends "garage/Provider/base.html" %}}
+    {{% block page_title %}}Booking #{booking.bookingId}{{% endblock %}}
+    {{% block breadcrumb %}}Bookings / #{booking.bookingId}{{% endblock %}}
+    {{% block content %}}
+    <div class="card" style="padding:24px">
+        <h2 style="color:#1e3a5f;margin-bottom:16px">Booking #BK{booking.bookingId}</h2>
+        <table style="width:100%;font-size:15px;line-height:2">
+            <tr><td style="font-weight:600;width:200px">Customer</td><td>{booking.customer.user.get_full_name()}</td></tr>
+            <tr><td style="font-weight:600">Email</td><td>{booking.customer.user.email}</td></tr>
+            <tr><td style="font-weight:600">Vehicle</td><td>{booking.customer.vehicleNumber}</td></tr>
+            <tr><td style="font-weight:600">Service</td><td>{booking.service.serviceName}</td></tr>
+            <tr><td style="font-weight:600">Price</td><td>₹{booking.service.servicePrice}</td></tr>
+            <tr><td style="font-weight:600">Date</td><td>{booking.bookingDate}</td></tr>
+            <tr><td style="font-weight:600">Time</td><td>{booking.bookingTime or '—'}</td></tr>
+            <tr><td style="font-weight:600">Status</td><td><span class="badge {booking.bookingStatus}">{booking.get_bookingStatus_display()}</span></td></tr>
+            <tr><td style="font-weight:600">Notes</td><td>{booking.notes or '—'}</td></tr>
+        </table>
+        <div style="margin-top:20px;display:flex;gap:10px">
+            <a href="{{% url 'provider_bookings' %}}" class="btn" style="background:#6b7280;color:#fff;padding:8px 20px;border-radius:6px;text-decoration:none">← Back to Bookings</a>
+        </div>
+    </div>
+    {{% endblock %}}
+    """
     return render(request, 'garage/Provider/booking_detail.html', context)
- 
- 
-# ── Confirm booking ───────────────────────────────────────────
+
+
 @role_required(allowed_roles=["service_provider"])
 @require_POST
-def provider_confirm_booking(request, pk):
+def provider_confirm_booking(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    booking  = get_object_or_404(Bookings, pk=pk, provider=provider, bookingStatus='pending')
+    booking  = get_object_or_404(
+        Bookings,
+        bookingId=booking_id,
+        provider=provider,
+        bookingStatus='pending',
+    )
     booking.bookingStatus = 'confirmed'
     booking.save()
     Notification.objects.create(
-        user=booking.customer.user, notificationType='booking_confirmed',
+        user=booking.customer.user,
+        notificationType='booking_confirmed',
         title='Booking Confirmed',
-        message=f'Your booking #{booking.bookingId} for {booking.service.serviceName} '
-                f'at {provider.garageName} has been confirmed.',
+        message=(
+            f'Your booking #{booking.bookingId} for {booking.service.serviceName} '
+            f'at {provider.garageName} has been confirmed.'
+        ),
     )
     messages.success(request, f'Booking #{booking.bookingId} confirmed.')
     return redirect('provider_bookings')
- 
- 
-# ── Start service ─────────────────────────────────────────────
+
+
 @role_required(allowed_roles=["service_provider"])
 @require_POST
-def provider_start_booking(request, pk):
+def provider_start_booking(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    booking  = get_object_or_404(Bookings, pk=pk, provider=provider, bookingStatus='confirmed')
+    booking  = get_object_or_404(
+        Bookings,
+        bookingId=booking_id,
+        provider=provider,
+        bookingStatus='confirmed',
+    )
     booking.bookingStatus = 'in_progress'
     booking.save()
+    Notification.objects.create(
+        user=booking.customer.user,
+        notificationType='general',
+        title='Service Started',
+        message=(
+            f'Your {booking.service.serviceName} service at '
+            f'{provider.garageName} has started.'
+        ),
+    )
     messages.success(request, f'Booking #{booking.bookingId} is now in progress.')
     return redirect('provider_bookings')
- 
- 
-# ── Complete booking ──────────────────────────────────────────
+
+
 @role_required(allowed_roles=["service_provider"])
 @require_POST
-def provider_complete_booking(request, pk):
+def provider_complete_booking(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    booking  = get_object_or_404(Bookings, pk=pk, provider=provider, bookingStatus='in_progress')
+    booking  = get_object_or_404(
+        Bookings,
+        bookingId=booking_id,
+        provider=provider,
+        bookingStatus='in_progress',
+    )
     booking.bookingStatus = 'completed'
     booking.save()
     Notification.objects.create(
-        user=booking.customer.user, notificationType='service_completed',
+        user=booking.customer.user,
+        notificationType='service_completed',
         title='Service Completed',
-        message=f'Your {booking.service.serviceName} service by {provider.garageName} '
-                f'is complete. Please leave a review!',
+        message=(
+            f'Your {booking.service.serviceName} service by {provider.garageName} '
+            f'is complete. Please leave a review!'
+        ),
     )
     messages.success(request, f'Booking #{booking.bookingId} marked as completed. Generate invoice now.')
-    return redirect('provider_invoice_generate', booking_pk=booking.bookingId)
- 
- 
+    return redirect('provider_invoice_generate', booking_id=booking.bookingId)
+
+
 # ============================================================
-#  3. MY SERVICES  —  /serviceProvider/services/
+#  PROVIDER — SERVICES
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
 def provider_services(request):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    services = Services.objects.filter(providerId=provider).order_by('serviceName')
-    context  = {
+    services_list = Services.objects.filter(providerId=provider).order_by('serviceName')
+    context = {
         **get_provider_context(request),
         'active':   'services',
-        'services': services,
+        'services': services_list,
     }
     return render(request, 'garage/Provider/services.html', context)
- 
- 
-# ── Save / edit service ───────────────────────────────────────
+
+
 @role_required(allowed_roles=["service_provider"])
 @require_POST
 def provider_service_save(request):
@@ -2027,11 +2355,11 @@ def provider_service_save(request):
     price       = request.POST.get('price', 0)
     duration    = request.POST.get('duration') or None
     available   = request.POST.get('available', 'true') == 'true'
- 
+
     if not name:
         messages.error(request, 'Service name is required.')
         return redirect('provider_services')
- 
+
     if service_id:
         svc = get_object_or_404(Services, pk=service_id, providerId=provider)
         svc.serviceName        = name
@@ -2051,44 +2379,44 @@ def provider_service_save(request):
             isAvailable        = available,
         )
         messages.success(request, f'"{name}" added successfully.')
- 
+
     return redirect('provider_services')
- 
- 
-# ── Delete service ────────────────────────────────────────────
+
+
 @role_required(allowed_roles=["service_provider"])
 @require_POST
 def provider_service_delete(request, pk):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     svc      = get_object_or_404(Services, pk=pk, providerId=provider)
+    name     = svc.serviceName
     svc.delete()
-    messages.success(request, f'"{svc.serviceName}" deleted.')
+    messages.success(request, f'"{name}" deleted.')
     return redirect('provider_services')
- 
- 
+
+
 # ============================================================
-#  4. REVIEWS  —  /serviceProvider/reviews/
+#  PROVIDER — REVIEWS
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
 def provider_reviews(request):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    reviews  = (
+    reviews_qs = (
         Review.objects
         .filter(provider=provider)
         .select_related('customer__user', 'booking__service')
         .order_by('-createdAt')
     )
- 
-    total   = reviews.count()
-    avg_r   = reviews.aggregate(avg=Avg('rating'))['avg'] or 0
-    avg_rating = round(avg_r, 1)
-    positive   = reviews.filter(rating__gte=4).count()
+
+    total        = reviews_qs.count()
+    avg_r        = reviews_qs.aggregate(avg=Avg('rating'))['avg'] or 0
+    avg_rating   = round(avg_r, 1)
+    positive     = reviews_qs.filter(rating__gte=4).count()
     positive_pct = round((positive / total * 100) if total else 0)
-    flagged_count = reviews.filter(rating__lte=2).count()
- 
-    paginator   = Paginator(reviews, 10)
+    flagged_count = reviews_qs.filter(rating__lte=2).count()
+
+    paginator   = Paginator(reviews_qs, 10)
     review_page = paginator.get_page(request.GET.get('page', 1))
- 
+
     context = {
         **get_provider_context(request),
         'active':        'reviews',
@@ -2098,16 +2426,16 @@ def provider_reviews(request):
         'flagged_count': flagged_count,
     }
     return render(request, 'garage/Provider/reviews.html', context)
- 
- 
+
+
 # ============================================================
-#  5. EARNINGS  —  /serviceProvider/earnings/
+#  PROVIDER — EARNINGS
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
 def provider_earnings(request):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     today    = date.today()
- 
+
     payments_qs = (
         Payments.objects
         .filter(booking__provider=provider)
@@ -2125,25 +2453,33 @@ def provider_earnings(request):
                 paymentDate__year=today.year)
         .aggregate(total=Sum('amount'))['total'] or 0
     )
-    total_invoices = Invoice.objects.filter(booking__provider=provider).count()
- 
-    paginator    = Paginator(payments_qs, 12)
-    payment_page = paginator.get_page(request.GET.get('page', 1))
- 
+
+    invoices_qs = (
+        Invoice.objects
+        .filter(booking__provider=provider)
+        .select_related('booking__customer__user', 'booking__service', 'payment')
+        .order_by('-invoiceDate')
+    )
+    total_invoices = invoices_qs.count()
+
+    pay_paginator = Paginator(payments_qs, 10)
+    inv_paginator = Paginator(invoices_qs, 10)
+
     context = {
         **get_provider_context(request),
-        'active':           'earnings',
-        'payments':         payment_page,
-        'total_earned':     totals['total_earned']   or 0,
-        'pending_amount':   totals['pending_amount'] or 0,
-        'monthly_revenue':  monthly_revenue,
-        'total_invoices':   total_invoices,
+        'active':          'earnings',
+        'payments':        pay_paginator.get_page(request.GET.get('pay_page', 1)),
+        'invoices':        inv_paginator.get_page(request.GET.get('inv_page', 1)),
+        'total_earned':    totals['total_earned']   or 0,
+        'pending_amount':  totals['pending_amount'] or 0,
+        'monthly_revenue': monthly_revenue,
+        'total_invoices':  total_invoices,
     }
     return render(request, 'garage/Provider/earnings.html', context)
- 
- 
+
+
 # ============================================================
-#  6. NOTIFICATIONS  —  /serviceProvider/notifications/
+#  PROVIDER — NOTIFICATIONS
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
 def provider_notifications(request):
@@ -2152,10 +2488,10 @@ def provider_notifications(request):
     read   = notifs.filter(isRead=True).count()
     unread = notifs.filter(isRead=False).count()
     open_rate = round((read / total * 100) if total else 0)
- 
+
     paginator  = Paginator(notifs, 15)
     notif_page = paginator.get_page(request.GET.get('page', 1))
- 
+
     context = {
         **get_provider_context(request),
         'active':        'notifications',
@@ -2165,33 +2501,33 @@ def provider_notifications(request):
         'open_rate':     open_rate,
     }
     return render(request, 'garage/Provider/notifications.html', context)
- 
- 
+
+
 @role_required(allowed_roles=["service_provider"])
 def provider_notification_read(request, pk):
     notif = get_object_or_404(Notification, pk=pk, user=request.user)
     notif.isRead = True
     notif.save()
     return redirect('provider_notifications')
- 
- 
+
+
 @role_required(allowed_roles=["service_provider"])
 def provider_notifications_read_all(request):
     Notification.objects.filter(user=request.user, isRead=False).update(isRead=True)
     messages.success(request, 'All notifications marked as read.')
     return redirect('provider_notifications')
- 
- 
+
+
 # ============================================================
-#  7. PROFILE  —  /serviceProvider/profile/
+#  PROVIDER — PROFILE
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
 def provider_profile(request):
     provider = ServiceProvider.objects.filter(user=request.user).first()
- 
+
     if request.method == 'POST':
         action = request.POST.get('action', 'garage')
- 
+
         if action == 'garage':
             if not provider:
                 provider = ServiceProvider(user=request.user)
@@ -2200,8 +2536,8 @@ def provider_profile(request):
             provider.location    = request.POST.get('location', '').strip()
             lat = request.POST.get('latitude', '')
             lng = request.POST.get('longitude', '')
-            provider.latitude    = float(lat) if lat else None
-            provider.longitude   = float(lng) if lng else None
+            provider.latitude  = float(lat) if lat else None
+            provider.longitude = float(lng) if lng else None
             ot = request.POST.get('opening_time')
             ct = request.POST.get('closing_time')
             if ot: provider.openingTime = ot
@@ -2210,7 +2546,7 @@ def provider_profile(request):
                 provider.garageImage = request.FILES['garage_image']
             provider.save()
             messages.success(request, 'Garage info updated successfully!')
- 
+
         elif action == 'account':
             request.user.first_name = request.POST.get('first_name', '').strip()
             request.user.last_name  = request.POST.get('last_name', '').strip()
@@ -2218,7 +2554,7 @@ def provider_profile(request):
                 request.user.mobile = request.POST.get('mobile', '').strip()
             request.user.save()
             messages.success(request, 'Account info updated!')
- 
+
         elif action == 'password':
             cur  = request.POST.get('current_password', '')
             new  = request.POST.get('new_password', '')
@@ -2234,12 +2570,12 @@ def provider_profile(request):
                 request.user.save()
                 messages.success(request, 'Password updated! Please log in again.')
                 return redirect('login')
- 
+
         return redirect('provider_profile')
- 
+
     total_bookings = Bookings.objects.filter(provider=provider).count() if provider else 0
     services_count = Services.objects.filter(providerId=provider).count() if provider else 0
- 
+
     context = {
         **get_provider_context(request),
         'active':         'profile',
@@ -2248,21 +2584,20 @@ def provider_profile(request):
         'services_count': services_count,
     }
     return render(request, 'garage/Provider/profile.html', context)
- 
- 
+
+
 # ============================================================
-#  LOGOUT
+#  PROVIDER LOGOUT
 # ============================================================
 def provider_logout(request):
     auth_logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('login')
- 
- 
+
+
 # ============================================================
-#  INVOICE VIEWS
+#  INVOICE HELPER
 # ============================================================
- 
 def _next_invoice_number(provider):
     """Generate sequential invoice number like INV-2026-001."""
     year  = date.today().year
@@ -2271,34 +2606,44 @@ def _next_invoice_number(provider):
         invoiceDate__year=year
     ).count() + 1
     return f"INV-{year}-{count:03d}"
- 
- 
-# ── Show generate-invoice form ─────────────────────────────────
+
+
+# ============================================================
+#  PROVIDER — GENERATE INVOICE
+# ============================================================
 @role_required(allowed_roles=["service_provider"])
-def provider_invoice_generate(request, booking_pk):
+def provider_invoice_generate(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     booking  = get_object_or_404(
-        Bookings, pk=booking_pk, provider=provider, bookingStatus='completed'
+        Bookings.objects.select_related('customer__user', 'service'),
+        bookingId=booking_id,
+        provider=provider,
+        bookingStatus='completed',
     )
- 
-    if hasattr(booking, 'invoice') and booking.invoice:
+
+    existing_invoice = None
+    try:
+        existing_invoice = booking.invoice
+    except Exception:
+        pass
+
+    if existing_invoice:
         messages.info(request, 'Invoice already exists. Redirecting to view.')
-        return redirect('provider_invoice_view', pk=booking.invoice.invoiceId)
- 
+        return redirect('provider_invoice_view', invoice_id=existing_invoice.invoiceId)
+
     if request.method == 'POST':
-        inv_num        = request.POST.get('invoice_number', '').strip()
-        gst_pct        = float(request.POST.get('gst_percent', 18))
-        gst_amount     = float(request.POST.get('gst_amount', 0))
-        discount       = float(request.POST.get('discount_amount', 0))
-        total_amount   = float(request.POST.get('total_amount', booking.service.servicePrice))
-        pay_method     = request.POST.get('payment_method', 'cash')
-        pay_status     = request.POST.get('payment_status', 'completed')
-        notes          = request.POST.get('notes', '').strip()
- 
+        inv_num      = request.POST.get('invoice_number', '').strip()
+        gst_pct      = float(request.POST.get('gst_percent', 18))
+        gst_amount   = float(request.POST.get('gst_amount', 0))
+        discount     = float(request.POST.get('discount_amount', 0))
+        total_amount = float(request.POST.get('total_amount', booking.service.servicePrice))
+        pay_method   = request.POST.get('payment_method', 'cash')
+        pay_status   = request.POST.get('payment_status', 'completed')
+        notes        = request.POST.get('notes', '').strip()
+
         if not inv_num:
             inv_num = _next_invoice_number(provider)
- 
-        # Create Payment record
+
         payment = Payments.objects.create(
             booking       = booking,
             amount        = total_amount,
@@ -2307,8 +2652,7 @@ def provider_invoice_generate(request, booking_pk):
             transactionId = str(uuid.uuid4())[:12].upper(),
             paymentDate   = timezone.now(),
         )
- 
-        # Create Invoice record
+
         invoice = Invoice.objects.create(
             booking        = booking,
             payment        = payment,
@@ -2318,8 +2662,7 @@ def provider_invoice_generate(request, booking_pk):
             taxAmount      = gst_amount,
             discountAmount = discount,
         )
- 
-        # Notify customer
+
         Notification.objects.create(
             user             = booking.customer.user,
             notificationType = 'payment_received',
@@ -2330,27 +2673,35 @@ def provider_invoice_generate(request, booking_pk):
                 f'Total: ₹{total_amount}.'
             ),
         )
- 
+
         messages.success(request, f'Invoice {inv_num} generated successfully!')
-        return redirect('provider_invoice_view', pk=invoice.invoiceId)
- 
+        return redirect('provider_invoice_view', invoice_id=invoice.invoiceId)
+
     context = {
         **get_provider_context(request),
-        'active':            'earnings',
-        'booking':           booking,
-        'user':              request.user,
-        'today':             date.today().strftime('%d %b %Y'),
-        'next_invoice_num':  _next_invoice_number(provider).split('-')[-1],
+        'active':           'earnings',
+        'booking':          booking,
+        'user':             request.user,
+        'today':            date.today().strftime('%d %b %Y'),
+        'next_invoice_num': _next_invoice_number(provider).split('-')[-1],
     }
     return render(request, 'garage/Provider/invoice_generate.html', context)
- 
- 
-# ── View / preview invoice ─────────────────────────────────────
+
+
+# ============================================================
+#  PROVIDER — VIEW INVOICE
+# ============================================================
 @role_required(allowed_roles=["service_provider"])
-def provider_invoice_view(request, pk):
+def provider_invoice_view(request, invoice_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    invoice  = get_object_or_404(Invoice, pk=pk, booking__provider=provider)
-    context  = {
+    invoice  = get_object_or_404(
+        Invoice.objects.select_related(
+            'booking__customer__user', 'booking__service', 'payment'
+        ),
+        invoiceId=invoice_id,
+        booking__provider=provider,
+    )
+    context = {
         **get_provider_context(request),
         'active':   'earnings',
         'invoice':  invoice,
@@ -2359,26 +2710,33 @@ def provider_invoice_view(request, pk):
         'today':    date.today().strftime('%d %b %Y'),
     }
     return render(request, 'garage/Provider/invoice_view.html', context)
- 
- 
-# ── Download invoice as CSV ────────────────────────────────────
+
+
+# ============================================================
+#  PROVIDER — DOWNLOAD INVOICE CSV
+# ============================================================
 @role_required(allowed_roles=["service_provider"])
-def provider_invoice_download(request, pk):
-    import csv as csv_module
+def provider_invoice_download(request, invoice_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    invoice  = get_object_or_404(Invoice, pk=pk, booking__provider=provider)
-    b = invoice.booking
- 
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = (
-        f'attachment; filename="{invoice.invoiceNumber}.csv"'
+    invoice  = get_object_or_404(
+        Invoice.objects.select_related(
+            'booking__customer__user', 'booking__service', 'payment'
+        ),
+        invoiceId=invoice_id,
+        booking__provider=provider,
     )
-    writer = csv_module.writer(response)
+    b = invoice.booking
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="' + invoice.invoiceNumber + '.csv"'
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    writer = csv.writer(response)
     writer.writerow(['E-GARAGE — TAX INVOICE'])
     writer.writerow([])
     writer.writerow(['Invoice No.',    invoice.invoiceNumber])
-    writer.writerow(['Invoice Date',   invoice.invoiceDate])
-    writer.writerow(['Booking ID',     f'#BK{b.bookingId}'])
+    writer.writerow(['Invoice Date',   str(invoice.invoiceDate)])
+    writer.writerow(['Booking ID',     '#BK' + str(b.bookingId)])
     writer.writerow([])
     writer.writerow(['FROM (Provider)', provider.garageName])
     writer.writerow(['Location',        provider.location])
@@ -2389,44 +2747,161 @@ def provider_invoice_download(request, pk):
     writer.writerow(['Vehicle',         b.customer.vehicleNumber])
     writer.writerow([])
     writer.writerow(['DESCRIPTION',     'AMOUNT'])
-    writer.writerow([b.service.serviceName, f'₹{b.service.servicePrice}'])
-    writer.writerow(['GST',             f'₹{invoice.taxAmount}'])
-    writer.writerow(['Discount',        f'₹{invoice.discountAmount}'])
-    writer.writerow(['TOTAL',           f'₹{invoice.totalAmount}'])
+    writer.writerow([b.service.serviceName, 'Rs.' + str(b.service.servicePrice)])
+    writer.writerow(['GST',             'Rs.' + str(invoice.taxAmount)])
+    writer.writerow(['Discount',        'Rs.' + str(invoice.discountAmount)])
+    writer.writerow(['TOTAL',           'Rs.' + str(invoice.totalAmount)])
+    if invoice.payment:
+        writer.writerow([])
+        writer.writerow(['Payment Method', invoice.payment.paymentMethod])
+        writer.writerow(['Payment Status', invoice.payment.paymentStatus])
+        writer.writerow(['Transaction ID', invoice.payment.transactionId or '—'])
     return response
- 
- 
-# ── Print-friendly invoice page ───────────────────────────────
+
+
+# ============================================================
+#  PROVIDER — PRINT INVOICE
+# ============================================================
 @role_required(allowed_roles=["service_provider"])
-def provider_invoice_print(request, pk):
+def provider_invoice_print(request, invoice_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    invoice  = get_object_or_404(Invoice, pk=pk, booking__provider=provider)
-    context  = {
-        'invoice':  invoice,
-        'provider': provider,
-        'user':     request.user,
-        'today':    date.today().strftime('%d %b %Y'),
-    }
-    return render(request, 'garage/Provider/invoice_print.html', context)
- 
- 
-# ── Export all invoices as CSV ────────────────────────────────
+    invoice  = get_object_or_404(
+        Invoice.objects.select_related(
+            'booking__customer__user', 'booking__service', 'payment'
+        ),
+        invoiceId=invoice_id,
+        booking__provider=provider,
+    )
+    b = invoice.booking
+    base_amt = float(invoice.totalAmount) - float(invoice.taxAmount) + float(invoice.discountAmount)
+
+    pay_method = '—'
+    pay_status = '—'
+    pay_txn    = '—'
+    if invoice.payment:
+        pay_method = invoice.payment.paymentMethod or '—'
+        pay_status = invoice.payment.paymentStatus or '—'
+        pay_txn    = invoice.payment.transactionId or '—'
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invoice {invoice.invoiceNumber}</title>
+<style>
+@page {{ size: A4; margin: 15mm; }}
+* {{ margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Arial,sans-serif; }}
+body {{ padding:30px; color:#222; background:#fff; }}
+.inv-box {{ max-width:750px; margin:auto; }}
+.top-bar {{ background:#e8560a; color:#fff; padding:18px 28px; display:flex;
+            justify-content:space-between; align-items:center; border-radius:8px 8px 0 0; }}
+.top-bar h1 {{ font-size:22px; }}
+.top-bar .inv-label {{ text-align:right; }}
+.top-bar .inv-label h2 {{ font-size:16px; font-weight:400; opacity:.85; }}
+.top-bar .inv-label p {{ font-size:20px; font-weight:700; }}
+.body-area {{ border:1px solid #ddd; border-top:none; padding:28px; border-radius:0 0 8px 8px; }}
+.parties {{ display:flex; justify-content:space-between; margin-bottom:24px; }}
+.parties div {{ width:48%; }}
+.parties h4 {{ color:#e8560a; font-size:12px; text-transform:uppercase; letter-spacing:.5px;
+               margin-bottom:6px; }}
+.parties p {{ font-size:14px; line-height:1.7; color:#444; }}
+.meta-row {{ display:flex; justify-content:space-between; background:#f8f8f8;
+             padding:10px 16px; border-radius:6px; margin-bottom:20px; font-size:13px; color:#555; }}
+table {{ width:100%; border-collapse:collapse; margin-bottom:18px; }}
+thead {{ background:#1e3a5f; color:#fff; }}
+thead th {{ padding:10px 14px; text-align:left; font-size:13px; font-weight:600; }}
+tbody td {{ padding:10px 14px; border-bottom:1px solid #eee; font-size:14px; }}
+.total-row td {{ font-weight:700; font-size:16px; border-top:2px solid #1e3a5f; background:#f0f7ff; }}
+.pay-info {{ background:#f8f8f8; padding:14px 18px; border-radius:6px; font-size:13px; color:#555;
+             display:flex; gap:30px; margin-bottom:18px; }}
+.pay-info span {{ font-weight:600; color:#222; }}
+.footer {{ text-align:center; padding-top:16px; border-top:1px solid #eee; }}
+.footer p {{ font-size:12px; color:#999; }}
+.footer p.thanks {{ font-size:14px; color:#e8560a; font-weight:600; margin-bottom:4px; }}
+.print-btn {{ text-align:center; margin-bottom:18px; }}
+.print-btn button {{ background:#e8560a; color:#fff; border:none; padding:10px 32px;
+                     font-size:14px; font-weight:600; border-radius:6px; cursor:pointer; }}
+.print-btn button:hover {{ background:#d14a00; }}
+@media print {{ .print-btn {{ display:none; }} }}
+</style>
+</head>
+<body>
+<div class="print-btn">
+  <button onclick="window.print()">🖨️ Print Invoice</button>
+  <button onclick="window.close()" style="background:#6b7280;margin-left:8px">✕ Close</button>
+</div>
+<div class="inv-box">
+  <div class="top-bar">
+    <div><h1>e<span style="color:#ffd699">Garage</span></h1><p style="font-size:12px;opacity:.8">TAX INVOICE</p></div>
+    <div class="inv-label"><h2>Invoice</h2><p>{invoice.invoiceNumber}</p></div>
+  </div>
+  <div class="body-area">
+    <div class="parties">
+      <div>
+        <h4>From (Service Provider)</h4>
+        <p><strong>{provider.garageName}</strong><br>
+        {provider.location}<br>
+        {request.user.email}<br>
+        {getattr(request.user, 'mobile', '') or ''}</p>
+      </div>
+      <div>
+        <h4>To (Customer)</h4>
+        <p><strong>{b.customer.user.get_full_name()}</strong><br>
+        {b.customer.user.email}<br>
+        Vehicle: {b.customer.vehicleNumber}<br>
+        {b.customer.vehicleModel or ''} {b.customer.vehicleColor or ''}</p>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span>Invoice Date: <strong>{invoice.invoiceDate}</strong></span>
+      <span>Booking: <strong>#BK{b.bookingId}</strong></span>
+      <span>Service Date: <strong>{b.bookingDate}</strong></span>
+    </div>
+    <table>
+      <thead><tr><th>Description</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody>
+        <tr><td>{b.service.serviceName}</td><td style="text-align:right">₹{base_amt:.2f}</td></tr>
+        <tr><td>GST / Tax</td><td style="text-align:right">₹{invoice.taxAmount:.2f}</td></tr>
+        <tr><td>Discount</td><td style="text-align:right">- ₹{invoice.discountAmount:.2f}</td></tr>
+        <tr class="total-row"><td>Total Payable</td><td style="text-align:right">₹{invoice.totalAmount:.2f}</td></tr>
+      </tbody>
+    </table>
+    <div class="pay-info">
+      <div>Method: <span>{pay_method}</span></div>
+      <div>Status: <span>{pay_status}</span></div>
+      <div>Txn ID: <span>{pay_txn}</span></div>
+    </div>
+    <div class="footer">
+      <p class="thanks">Thank you for choosing {provider.garageName}!</p>
+      <p>This is a computer-generated invoice. No signature required.</p>
+      <p>eGarage &bull; Generated on {date.today().strftime('%d %b %Y')}</p>
+    </div>
+  </div>
+</div>
+<script>setTimeout(function(){{ window.print(); }}, 600);</script>
+</body>
+</html>"""
+    return HttpResponse(html, content_type='text/html; charset=utf-8')
+
+
+# ============================================================
+#  PROVIDER — EXPORT ALL INVOICES CSV
+# ============================================================
 @role_required(allowed_roles=["service_provider"])
 def provider_invoices_export(request):
-    import csv as csv_module
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    invoices = Invoice.objects.filter(
+    invoices_qs = Invoice.objects.filter(
         booking__provider=provider
-    ).select_related('booking__customer__user', 'booking__service').order_by('-invoiceDate')
- 
+    ).select_related('booking__customer__user', 'booking__service', 'payment').order_by('-invoiceDate')
+
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = (
         f'attachment; filename="{provider.garageName}_invoices.csv"'
     )
-    writer = csv_module.writer(response)
+    writer = csv.writer(response)
     writer.writerow(['Invoice No', 'Date', 'Booking', 'Customer', 'Service', 'Vehicle',
                      'Service Amount', 'GST', 'Discount', 'Total', 'Payment Status'])
-    for inv in invoices:
+    for inv in invoices_qs:
         b = inv.booking
         writer.writerow([
             inv.invoiceNumber,
@@ -2442,51 +2917,70 @@ def provider_invoices_export(request):
             inv.payment.paymentStatus if inv.payment else 'No Payment',
         ])
     return response
- 
- 
-# ── Updated earnings view (adds invoices list) ────────────────
+
+
+# ============================================================
+#  PROVIDER — EXPORT EARNINGS CSV
+# ============================================================
 @role_required(allowed_roles=["service_provider"])
-def provider_earnings(request):
+def provider_earnings_export(request):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    today    = date.today()
- 
-    payments_qs = (
+
+    filename = provider.garageName.replace(' ', '_') + '_earnings_' + str(date.today()) + '.csv'
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    writer = csv.writer(response)
+
+    writer.writerow(['=== PAYMENT HISTORY ==='])
+    writer.writerow([
+        'Pay ID', 'Booking', 'Customer', 'Service',
+        'Amount', 'Method', 'Date', 'Status',
+    ])
+    pay_qs = (
         Payments.objects
         .filter(booking__provider=provider)
         .select_related('booking__customer__user', 'booking__service')
         .order_by('-paymentDate')
     )
-    totals = payments_qs.aggregate(
-        total_earned   = Sum('amount', filter=Q(paymentStatus='completed')),
-        pending_amount = Sum('amount', filter=Q(paymentStatus='pending')),
-    )
-    monthly_revenue = (
-        payments_qs
-        .filter(paymentStatus='completed',
-                paymentDate__month=today.month,
-                paymentDate__year=today.year)
-        .aggregate(total=Sum('amount'))['total'] or 0
-    )
- 
-    invoices_qs = (
+    for pay in pay_qs:
+        writer.writerow([
+            '#PAY' + str(pay.paymentId),
+            '#BK' + str(pay.booking.bookingId),
+            pay.booking.customer.user.get_full_name(),
+            pay.booking.service.serviceName,
+            str(pay.amount),
+            pay.get_paymentMethod_display(),
+            pay.paymentDate.strftime('%d %b %Y') if pay.paymentDate else '',
+            pay.get_paymentStatus_display(),
+        ])
+
+    writer.writerow([])
+    writer.writerow(['=== INVOICE HISTORY ==='])
+    writer.writerow([
+        'Invoice No', 'Booking', 'Customer', 'Service', 'Vehicle',
+        'GST', 'Discount', 'Total', 'Date', 'Status',
+    ])
+    inv_qs = (
         Invoice.objects
         .filter(booking__provider=provider)
         .select_related('booking__customer__user', 'booking__service', 'payment')
         .order_by('-invoiceDate')
     )
-    total_invoices = invoices_qs.count()
- 
-    pay_paginator = Paginator(payments_qs, 10)
-    inv_paginator = Paginator(invoices_qs, 10)
- 
-    context = {
-        **get_provider_context(request),
-        'active':           'earnings',
-        'payments':         pay_paginator.get_page(request.GET.get('pay_page', 1)),
-        'invoices':         inv_paginator.get_page(request.GET.get('inv_page', 1)),
-        'total_earned':     totals['total_earned']   or 0,
-        'pending_amount':   totals['pending_amount'] or 0,
-        'monthly_revenue':  monthly_revenue,
-        'total_invoices':   total_invoices,
-    }
-    return render(request, 'garage/Provider/earnings.html', context)
+    for inv in inv_qs:
+        b = inv.booking
+        writer.writerow([
+            inv.invoiceNumber,
+            '#BK' + str(b.bookingId),
+            b.customer.user.get_full_name(),
+            b.service.serviceName,
+            b.customer.vehicleNumber,
+            str(inv.taxAmount),
+            str(inv.discountAmount),
+            str(inv.totalAmount),
+            inv.invoiceDate.strftime('%d %b %Y') if inv.invoiceDate else '',
+            inv.payment.get_paymentStatus_display() if inv.payment else 'Unpaid',
+        ])
+
+    return response

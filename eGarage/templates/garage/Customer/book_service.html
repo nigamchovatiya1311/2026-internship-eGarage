@@ -5,110 +5,193 @@
 {% block breadcrumb %}Book a Service{% endblock %}
 
 {% block content %}
-<div class="section-header">
-  <div>
-    <h1 class="section-title">Book a Service</h1>
-    <p class="section-sub">Choose a service and pick your slot.</p>
+
+<!-- Hero Banner -->
+<div class="bk-hero fade-up">
+  <div class="bk-hero-badge"><i class="fas fa-bolt"></i> Quick Booking</div>
+  <h1>Book a Service</h1>
+  <p>Choose a service below and fill in your details to confirm a slot.</p>
+</div>
+
+<!-- Step 1 — Service Selection -->
+<div class="fade-up delay-1">
+  <div class="sec-label">
+    <div class="sec-label-num">1</div>
+    <div class="sec-label-text">Select a Service</div>
+    <div class="sec-label-line"></div>
+  </div>
+
+  <div class="svc-grid">
+    {% for svc in services %}
+    <div class="svc-card {% if selected_service == svc.serviceId|stringformat:'s' %}selected{% endif %}"
+         onclick="selectService({{ svc.serviceId }}, '{{ svc.serviceName|escapejs }}', {{ svc.servicePrice }}, this)">
+      <div class="svc-card-check"><i class="fas fa-check"></i></div>
+      <div class="svc-ic"><i class="fas fa-wrench"></i></div>
+      <span class="svc-name">{{ svc.serviceName }}</span>
+      <span class="svc-price">₹{{ svc.servicePrice }}</span>
+      {% if svc.estimatedDuration %}
+      <span class="svc-dur"><i class="fas fa-clock"></i> {{ svc.estimatedDuration }} min</span>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="empty-state" style="grid-column:1/-1">
+      <i class="fas fa-tools"></i>
+      <p>No services available at the moment.</p>
+    </div>
+    {% endfor %}
   </div>
 </div>
 
-<!-- SERVICE CARDS -->
-<div class="svc-grid">
-  {% for svc in services %}
-  <div class="svc-card {% if selected_service == svc.serviceId|stringformat:'s' %}selected{% endif %}"
-       onclick="selectService({{ svc.serviceId }}, '{{ svc.serviceName|escapejs }}', {{ svc.servicePrice }})">
-    <div class="svc-ic" style="background:var(--primary-light);color:var(--primary)">
-      <i class="fas fa-wrench"></i>
+<!-- Step 2 — Booking Form -->
+<div class="fade-up delay-2">
+  <div class="sec-label">
+    <div class="sec-label-num">2</div>
+    <div class="sec-label-text">Booking Details</div>
+    <div class="sec-label-line"></div>
+  </div>
+
+  <div class="bk-form-card">
+    <div class="bk-form-card-top">
+      <i class="fas fa-calendar-check"></i>
+      <span>Fill in your appointment info</span>
     </div>
-    <span class="svc-name">{{ svc.serviceName }}</span>
-    <span class="svc-price">₹{{ svc.servicePrice }}</span>
-    {% if svc.estimatedDuration %}
-    <span class="svc-dur"><i class="fas fa-clock"></i> {{ svc.estimatedDuration }} min</span>
-    {% endif %}
+
+    <form class="bk-form" method="POST" action="{% url 'book_service' %}">
+      {% csrf_token %}
+      <input type="hidden" name="service_id" id="service_id" value=""/>
+
+      <!-- Row 1: Selected Service + Provider -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Selected Service</label>
+          <div class="selected-svc-pill" id="svc-pill">
+            <i class="fas fa-wrench"></i>
+            <span class="pill-text" id="svc-pill-text">Click a service above to select</span>
+          </div>
+          <input type="text" id="selected_svc_display" style="display:none" readonly/>
+        </div>
+        <div class="form-group">
+          <label>Service Provider</label>
+          <div class="select-wrap">
+            <select name="provider_id" required>
+              <option value="">-- Select Provider --</option>
+              {% for p in providers %}
+              <option value="{{ p.providerId }}">{{ p.garageName }} — {{ p.location }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Date + Time + Vehicle -->
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Booking Date</label>
+          <input type="date" name="booking_date" min="{{ today_iso }}" required/>
+        </div>
+        <div class="form-group">
+          <label>Preferred Time</label>
+          <div class="select-wrap">
+            <select name="booking_time">
+              <option value="">-- Any Time --</option>
+              <option value="08:00">08:00 AM</option>
+              <option value="09:00">09:00 AM</option>
+              <option value="10:00">10:00 AM</option>
+              <option value="11:00">11:00 AM</option>
+              <option value="12:00">12:00 PM</option>
+              <option value="13:00">01:00 PM</option>
+              <option value="14:00">02:00 PM</option>
+              <option value="15:00">03:00 PM</option>
+              <option value="16:00">04:00 PM</option>
+              <option value="17:00">05:00 PM</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ✅ FIXED: Vehicle dropdown — shows ALL vehicles including newly added ones -->
+        <div class="form-group">
+          <label>Vehicle <span style="color:#e8560a">*</span></label>
+          {% if vehicles %}
+          <div class="select-wrap">
+            <select name="vehicle_id" required>
+              <option value="">-- Select Vehicle --</option>
+              {% for v in vehicles %}
+              <option value="{{ v.id }}">
+                {{ v.vehicleNumber }} — {{ v.vehicleModel }}
+                {% if v.vehicleYear %} {{ v.vehicleYear }}{% endif %}
+                ({% if v.vehicleType == 'bike' %}Bike{% else %}Car{% endif %})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% else %}
+          <div style="padding:10px 14px;background:#fef2f2;border:1.5px solid #fecaca;
+                      border-radius:8px;display:flex;align-items:center;gap:8px;font-size:.85rem;">
+            <i class="fas fa-exclamation-circle" style="color:#dc2626"></i>
+            <span style="color:#dc2626;font-weight:700;">
+              No vehicles registered —
+              <a href="{% url 'my_vehicle' %}" style="color:#e8560a;text-decoration:underline;">
+                Add one first
+              </a>
+            </span>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label>Additional Notes</label>
+        <textarea name="notes" rows="3"
+                  placeholder="Describe any specific issues, symptoms, or special requests…"></textarea>
+      </div>
+
+      <div class="form-divider"></div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <a href="{% url 'customer_home' %}" class="btn-secondary-outline">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+        <button type="submit" class="btn-primary"
+                {% if not vehicles %}disabled style="opacity:.5;cursor:not-allowed"{% endif %}>
+          <i class="fas fa-check-circle"></i> Confirm Booking
+        </button>
+      </div>
+
+    </form>
   </div>
-  {% empty %}
-  <div class="empty-state" style="grid-column:1/-1">
-    <i class="fas fa-tools"></i>
-    <p>No services available at the moment.</p>
-  </div>
-  {% endfor %}
 </div>
-
-<!-- BOOKING FORM -->
-<form class="bk-form" method="POST" action="{% url 'book_service' %}">
-  {% csrf_token %}
-  <input type="hidden" name="service_id" id="service_id" value=""/>
-  <div class="form-card-title">Booking Details</div>
-
-  <div class="form-row">
-    <div class="form-group">
-      <label>Selected Service</label>
-      <input type="text" id="selected_svc_display" placeholder="Click a service above" readonly
-             style="background:#f0fdf4;color:#16a34a;font-weight:700;cursor:default"/>
-    </div>
-    <div class="form-group">
-      <label>Service Provider</label>
-      <select name="provider_id" required>
-        <option value="">-- Select Provider --</option>
-        {% for p in providers %}
-        <option value="{{ p.providerId }}">{{ p.garageName }} — {{ p.location }}</option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
-
-  <div class="form-row">
-    <div class="form-group">
-      <label>Booking Date</label>
-      <input type="date" name="booking_date" min="{{ today_iso }}" required/>
-    </div>
-    <div class="form-group">
-      <label>Preferred Time</label>
-      <select name="booking_time">
-        <option value="">-- Any Time --</option>
-        <option value="08:00">08:00 AM</option>
-        <option value="09:00">09:00 AM</option>
-        <option value="10:00">10:00 AM</option>
-        <option value="11:00">11:00 AM</option>
-        <option value="12:00">12:00 PM</option>
-        <option value="13:00">01:00 PM</option>
-        <option value="14:00">02:00 PM</option>
-        <option value="15:00">03:00 PM</option>
-        <option value="16:00">04:00 PM</option>
-        <option value="17:00">05:00 PM</option>
-      </select>
-    </div>
-  </div>
-
-  {% if customer_profile %}
-  <div class="form-group">
-    <label>Vehicle</label>
-    <input type="text" value="{{ customer_profile.vehicleNumber }} — {{ customer_profile.vehicleModel }} {{ customer_profile.vehicleYear }}"
-           readonly style="background:#f8fafc;cursor:default"/>
-  </div>
-  {% endif %}
-
-  <div class="form-group">
-    <label>Additional Notes</label>
-    <textarea name="notes" rows="2" placeholder="Any specific issues or requests..."></textarea>
-  </div>
-
-  <div class="form-actions">
-    {% comment %} <button href="{% url 'customer_home' %}" class="btn-secondary">Cancel</button> {% endcomment %}
-    <button type="submit" class="btn-primary">
-      <i class="fas fa-check"></i> Confirm Booking
-    </button>
-  </div>
-</form>
 
 {% block extra_js %}
 <script>
-function selectService(id, name, price) {
-  document.getElementById('service_id').value = id;
-  document.getElementById('selected_svc_display').value = name + ' — ₹' + price.toLocaleString('en-IN');
+function selectService(id, name, price, cardEl) {
+  const serviceInput = document.getElementById('service_id');
+  const pill         = document.getElementById('svc-pill');
+  const pillText     = document.getElementById('svc-pill-text');
+  const displayInput = document.getElementById('selected_svc_display');
+
+  // Clicking the already-selected card → deselect
+  if (cardEl.classList.contains('selected')) {
+    cardEl.classList.remove('selected');
+    serviceInput.value = '';
+    displayInput.value = '';
+    pill.classList.remove('has-value');
+    pillText.textContent = 'Click a service above to select';
+    return;
+  }
+
+  // Select new card
   document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+  cardEl.classList.add('selected');
+
+  serviceInput.value = id;
+  displayInput.value = name + ' — ₹' + price.toLocaleString('en-IN');
+  pill.classList.add('has-value');
+  pillText.textContent = name + '  —  ₹' + price.toLocaleString('en-IN');
 }
 </script>
 {% endblock %}
+
 {% endblock %}

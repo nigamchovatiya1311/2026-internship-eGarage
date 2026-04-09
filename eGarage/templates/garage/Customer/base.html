@@ -35,6 +35,7 @@
   </div>
 
   <!-- Vehicle Quick Info -->
+{% comment %}   
   {% if customer_profile %}
   <div class="sb-vehicle">
     <div class="sb-veh-icon"><i class="fas fa-car"></i></div>
@@ -43,7 +44,7 @@
       <span class="sb-veh-model">{{ customer_profile.vehicleModel }} {{ customer_profile.vehicleYear }}</span>
     </div>
   </div>
-  {% endif %}
+  {% endif %} {% endcomment %}
 
   <!-- Navigation -->
   <nav class="sb-nav">

@@ -5,98 +5,405 @@
 {% block breadcrumb %}My Bookings{% endblock %}
 
 {% block content %}
-<div class="section-header">
-  <div>
-    <h1 class="section-title">My Bookings</h1>
-    <p class="section-sub">All your current and upcoming appointments.</p>
+
+<!-- Hero Section -->
+<div class="mb-hero fade-up">
+  <div class="mb-hero-left">
+    <div class="mb-hero-badge"><i class="fas fa-calendar-check"></i> Booking Manager</div>
+    <h1>My Bookings</h1>
+    <p>Track, manage, and review all your service appointments in one place.</p>
   </div>
-  <a href="{% url 'book_service' %}" class="btn-primary">
+  <a href="{% url 'book_service' %}" class="btn-primary mb-hero-btn">
     <i class="fas fa-plus"></i> New Booking
   </a>
 </div>
 
-<!-- STATUS FILTER TABS -->
-<div class="filter-tabs">
-  <a href="?status=all"         class="ftab {% if status == 'all' or not status %}active{% endif %}">All</a>
-  <a href="?status=pending"     class="ftab {% if status == 'pending' %}active{% endif %}">Pending</a>
-  <a href="?status=confirmed"   class="ftab {% if status == 'confirmed' %}active{% endif %}">Confirmed</a>
-  <a href="?status=in_progress" class="ftab {% if status == 'in_progress' %}active{% endif %}">In Progress</a>
-  <a href="?status=completed"   class="ftab {% if status == 'completed' %}active{% endif %}">Completed</a>
-  <a href="?status=cancelled"   class="ftab {% if status == 'cancelled' %}active{% endif %}">Cancelled</a>
+<!-- Stats Summary -->
+<div class="mb-stats fade-up delay-1">
+  <div class="mb-stat-chip all">
+    <i class="fas fa-layer-group"></i>
+    <span class="mb-stat-count">{{ total_count|default:"0" }}</span>
+    <span class="mb-stat-label">Total</span>
+  </div>
+  <div class="mb-stat-chip pending">
+    <i class="fas fa-clock"></i>
+    <span class="mb-stat-count">{{ pending_count|default:"0" }}</span>
+    <span class="mb-stat-label">Pending</span>
+  </div>
+  <div class="mb-stat-chip confirmed">
+    <i class="fas fa-check-circle"></i>
+    <span class="mb-stat-count">{{ confirmed_count|default:"0" }}</span>
+    <span class="mb-stat-label">Confirmed</span>
+  </div>
+  <div class="mb-stat-chip in_progress">
+    <i class="fas fa-cog fa-spin"></i>
+    <span class="mb-stat-count">{{ in_progress_count|default:"0" }}</span>
+    <span class="mb-stat-label">In Progress</span>
+  </div>
+  <div class="mb-stat-chip completed">
+    <i class="fas fa-check-double"></i>
+    <span class="mb-stat-count">{{ completed_count|default:"0" }}</span>
+    <span class="mb-stat-label">Completed</span>
+  </div>
+  <div class="mb-stat-chip cancelled">
+    <i class="fas fa-ban"></i>
+    <span class="mb-stat-count">{{ cancelled_count|default:"0" }}</span>
+    <span class="mb-stat-label">Cancelled</span>
+  </div>
 </div>
 
-<!-- BOOKINGS LIST -->
-<div class="booking-list full">
+<!-- Filter Tabs -->
+<div class="mb-filter-bar fade-up delay-1">
+  <div class="mb-tabs">
+    <a href="?status=all" class="mb-tab {% if status == 'all' or not status %}active{% endif %}">
+      <i class="fas fa-layer-group"></i> All
+    </a>
+    <a href="?status=pending" class="mb-tab {% if status == 'pending' %}active{% endif %}">
+      <i class="fas fa-clock"></i> Pending
+    </a>
+    <a href="?status=confirmed" class="mb-tab {% if status == 'confirmed' %}active{% endif %}">
+      <i class="fas fa-check-circle"></i> Confirmed
+    </a>
+    <a href="?status=in_progress" class="mb-tab {% if status == 'in_progress' %}active{% endif %}">
+      <i class="fas fa-cog"></i> In Progress
+    </a>
+    <a href="?status=completed" class="mb-tab {% if status == 'completed' %}active{% endif %}">
+      <i class="fas fa-check-double"></i> Completed
+    </a>
+    <a href="?status=cancelled" class="mb-tab {% if status == 'cancelled' %}active{% endif %}">
+      <i class="fas fa-ban"></i> Cancelled
+    </a>
+  </div>
+  <div class="mb-search">
+    <i class="fas fa-search"></i>
+    <input type="text" id="bookingSearch" placeholder="Search bookings..." onkeyup="filterBookings()">
+  </div>
+</div>
+
+<!-- Bookings List -->
+<div class="mb-booking-list fade-up delay-2" id="bookingList">
   {% for booking in bookings %}
-  <div class="booking-item-full">
-    <div class="booking-icon {{ booking.bookingStatus }}">
-      <i class="fas fa-wrench"></i>
+  <div class="mb-card {{ booking.bookingStatus }}" data-search="{{ booking.service.serviceName|lower }} {{ booking.provider.garageName|lower }} {{ booking.bookingId }}">
+
+    <!-- Status Ribbon -->
+    <div class="mb-card-ribbon {{ booking.bookingStatus }}">
+      {{ booking.get_bookingStatus_display }}
     </div>
-    <div class="booking-info">
-      <span class="booking-service">{{ booking.service.serviceName }}</span>
-      <span class="booking-provider">
-        <i class="fas fa-store"></i> {{ booking.provider.garageName }}
-        &nbsp;·&nbsp;
-        <i class="fas fa-tag"></i> #BK{{ booking.bookingId }}
-      </span>
-      <div class="booking-meta">
-        <span><i class="fas fa-calendar"></i> {{ booking.bookingDate|date:"d M Y" }}</span>
-        {% if booking.bookingTime %}
-        <span><i class="fas fa-clock"></i> {{ booking.bookingTime }}</span>
-        {% endif %}
+
+    <div class="mb-card-inner">
+      <!-- Left: Icon + Main Info -->
+      <div class="mb-card-left">
+        <div class="mb-card-icon {{ booking.bookingStatus }}">
+          {% if booking.bookingStatus == 'completed' %}
+            <i class="fas fa-check-double"></i>
+          {% elif booking.bookingStatus == 'pending' %}
+            <i class="fas fa-hourglass-half"></i>
+          {% elif booking.bookingStatus == 'in_progress' %}
+            <i class="fas fa-cog"></i>
+          {% elif booking.bookingStatus == 'confirmed' %}
+            <i class="fas fa-calendar-check"></i>
+          {% elif booking.bookingStatus == 'cancelled' %}
+            <i class="fas fa-times-circle"></i>
+          {% else %}
+            <i class="fas fa-wrench"></i>
+          {% endif %}
+        </div>
+        <div class="mb-card-info">
+          <div class="mb-card-title">{{ booking.service.serviceName }}</div>
+          <div class="mb-card-subtitle">
+            <span><i class="fas fa-store"></i> {{ booking.provider.garageName }}</span>
+            <span class="mb-card-id"><i class="fas fa-hashtag"></i> BK{{ booking.bookingId }}</span>
+          </div>
+          <div class="mb-card-details">
+            <span class="mb-detail">
+              <i class="fas fa-calendar-alt"></i> {{ booking.bookingDate|date:"d M Y" }}
+            </span>
+            {% if booking.bookingTime %}
+            <span class="mb-detail">
+              <i class="fas fa-clock"></i> {{ booking.bookingTime }}
+            </span>
+            {% endif %}
+            {% if booking.notes %}
+            <span class="mb-detail mb-note-hint" title="{{ booking.notes }}">
+              <i class="fas fa-sticky-note"></i> Has notes
+            </span>
+            {% endif %}
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="booking-right">
-      <span class="badge {{ booking.bookingStatus }}">{{ booking.get_bookingStatus_display }}</span>
-      <span class="booking-amount">₹{{ booking.service.servicePrice }}</span>
-      <div class="booking-actions">
-        {% if booking.bookingStatus in 'pending,confirmed' %}
-        <form method="POST" action="{% url 'cancel_booking' booking.bookingId %}" style="display:inline"
-              onsubmit="return confirm('Cancel this booking?')">
-          {% csrf_token %}
-          <button type="submit" class="btn-danger-sm">
+
+      <!-- Right: Price + Actions -->
+      <div class="mb-card-right">
+        <div class="mb-card-price">₹{{ booking.service.servicePrice }}</div>
+        <div class="mb-card-actions">
+          <!-- View Details Button (always visible) -->
+          <button class="mb-btn mb-btn-view" onclick="openDetailModal(this)"
+                  data-id="BK{{ booking.bookingId }}"
+                  data-service="{{ booking.service.serviceName }}"
+                  data-provider="{{ booking.provider.garageName }}"
+                  data-location="{{ booking.provider.location }}"
+                  data-date="{{ booking.bookingDate|date:'d M Y' }}"
+                  data-time="{{ booking.bookingTime|default:'Any Time' }}"
+                  data-status="{{ booking.get_bookingStatus_display }}"
+                  data-statusclass="{{ booking.bookingStatus }}"
+                  data-price="{{ booking.service.servicePrice }}"
+                  data-notes="{{ booking.notes|default:'No additional notes' }}"
+                  data-vehicle="{{ customer_profile.vehicleNumber }} — {{ customer_profile.vehicleModel }} {{ customer_profile.vehicleYear }}">
+            <i class="fas fa-eye"></i> View
+          </button>
+
+          {% if booking.bookingStatus == 'pending' or booking.bookingStatus == 'confirmed' %}
+          <!-- Cancel Button -->
+          <button class="mb-btn mb-btn-cancel"
+                  data-cancel-url="{% url 'cancel_booking' booking.bookingId %}"
+                  onclick="openCancelModal(this, '{{ booking.service.serviceName|escapejs }}')">
             <i class="fas fa-times"></i> Cancel
           </button>
-        </form>
-        {% endif %}
-        {% if booking.bookingStatus == 'completed' %}
-        <a href="{% url 'service_history' %}" class="btn-outline-sm">
-          <i class="fas fa-star"></i> Review
-        </a>
-        {% endif %}
-        {% if booking.bookingStatus == 'cancelled' %}
-        <a href="{% url 'book_service' %}" class="btn-outline-sm">
-          <i class="fas fa-redo"></i> Rebook
-        </a>
-        {% endif %}
+          {% endif %}
+
+          {% if booking.bookingStatus == 'completed' %}
+          <!-- Review Button -->
+          <a href="{% url 'service_history' %}" class="mb-btn mb-btn-review">
+            <i class="fas fa-star"></i> Review
+          </a>
+          {% endif %}
+
+          {% if booking.bookingStatus == 'cancelled' %}
+          <!-- Rebook Button -->
+          <a href="{% url 'book_service' %}" class="mb-btn mb-btn-rebook">
+            <i class="fas fa-redo"></i> Rebook
+          </a>
+          {% endif %}
+        </div>
       </div>
     </div>
+
+    <!-- Progress Bar (for non-cancelled) -->
+    {% if booking.bookingStatus != 'cancelled' %}
+    <div class="mb-progress-bar">
+      <div class="mb-progress-step done">
+        <div class="mb-prog-dot"><i class="fas fa-check"></i></div>
+        <span>Booked</span>
+      </div>
+      <div class="mb-progress-line {% if booking.bookingStatus == 'confirmed' or booking.bookingStatus == 'in_progress' or booking.bookingStatus == 'completed' %}done{% endif %}"></div>
+      <div class="mb-progress-step {% if booking.bookingStatus == 'confirmed' or booking.bookingStatus == 'in_progress' or booking.bookingStatus == 'completed' %}done{% endif %}">
+        <div class="mb-prog-dot">{% if booking.bookingStatus == 'confirmed' or booking.bookingStatus == 'in_progress' or booking.bookingStatus == 'completed' %}<i class="fas fa-check"></i>{% else %}2{% endif %}</div>
+        <span>Confirmed</span>
+      </div>
+      <div class="mb-progress-line {% if booking.bookingStatus == 'in_progress' or booking.bookingStatus == 'completed' %}done{% endif %}"></div>
+      <div class="mb-progress-step {% if booking.bookingStatus == 'in_progress' or booking.bookingStatus == 'completed' %}done{% endif %}">
+        <div class="mb-prog-dot">{% if booking.bookingStatus == 'in_progress' or booking.bookingStatus == 'completed' %}<i class="fas fa-check"></i>{% else %}3{% endif %}</div>
+        <span>In Progress</span>
+      </div>
+      <div class="mb-progress-line {% if booking.bookingStatus == 'completed' %}done{% endif %}"></div>
+      <div class="mb-progress-step {% if booking.bookingStatus == 'completed' %}done{% endif %}">
+        <div class="mb-prog-dot">{% if booking.bookingStatus == 'completed' %}<i class="fas fa-check"></i>{% else %}4{% endif %}</div>
+        <span>Completed</span>
+      </div>
+    </div>
+    {% else %}
+    <div class="mb-cancelled-bar">
+      <i class="fas fa-info-circle"></i> This booking was cancelled.
+      <a href="{% url 'book_service' %}">Book again?</a>
+    </div>
+    {% endif %}
   </div>
   {% empty %}
-  <div class="empty-state">
-    <i class="fas fa-calendar-xmark"></i>
-    <p>No bookings found. <a href="{% url 'book_service' %}">Book a service now!</a></p>
+  <div class="mb-empty">
+    <div class="mb-empty-icon">
+      <i class="fas fa-calendar-xmark"></i>
+    </div>
+    <h3>No Bookings Found</h3>
+    <p>You don't have any {% if status and status != 'all' %}{{ status }}{% endif %} bookings yet.</p>
+    <a href="{% url 'book_service' %}" class="btn-primary">
+      <i class="fas fa-plus"></i> Book a Service Now
+    </a>
   </div>
   {% endfor %}
 </div>
 
-<!-- PAGINATION -->
+<!-- Pagination -->
 {% if bookings.has_other_pages %}
-<div class="pagination">
+<div class="mb-pagination fade-up">
   {% if bookings.has_previous %}
-  <a href="?status={{ status }}&page={{ bookings.previous_page_number }}" class="page-btn">
+  <a href="?status={{ status }}&page={{ bookings.previous_page_number }}" class="mb-page-btn">
     <i class="fas fa-chevron-left"></i>
   </a>
   {% endif %}
   {% for num in bookings.paginator.page_range %}
   <a href="?status={{ status }}&page={{ num }}"
-     class="page-btn {% if bookings.number == num %}active{% endif %}">{{ num }}</a>
+     class="mb-page-btn {% if bookings.number == num %}active{% endif %}">{{ num }}</a>
   {% endfor %}
   {% if bookings.has_next %}
-  <a href="?status={{ status }}&page={{ bookings.next_page_number }}" class="page-btn">
+  <a href="?status={{ status }}&page={{ bookings.next_page_number }}" class="mb-page-btn">
     <i class="fas fa-chevron-right"></i>
   </a>
   {% endif %}
 </div>
 {% endif %}
+
+<!-- ═══════ VIEW DETAILS MODAL ═══════ -->
+<div class="mb-modal-overlay" id="detailModal" onclick="closeDetailModal(event)">
+  <div class="mb-modal">
+    <div class="mb-modal-header">
+      <h3><i class="fas fa-receipt"></i> Booking Details</h3>
+      <button class="mb-modal-close" onclick="document.getElementById('detailModal').classList.remove('open')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="mb-modal-body">
+      <!-- Status Badge -->
+      <div class="mb-modal-status-row">
+        <span class="badge" id="mdStatus">—</span>
+        <span class="mb-modal-id" id="mdId">#BK000</span>
+      </div>
+
+      <!-- Info Grid -->
+      <div class="mb-modal-grid">
+        <div class="mb-modal-item">
+          <div class="mb-modal-item-icon"><i class="fas fa-wrench"></i></div>
+          <div>
+            <span class="mb-modal-item-label">Service</span>
+            <span class="mb-modal-item-value" id="mdService">—</span>
+          </div>
+        </div>
+        <div class="mb-modal-item">
+          <div class="mb-modal-item-icon"><i class="fas fa-store"></i></div>
+          <div>
+            <span class="mb-modal-item-label">Provider</span>
+            <span class="mb-modal-item-value" id="mdProvider">—</span>
+          </div>
+        </div>
+        <div class="mb-modal-item">
+          <div class="mb-modal-item-icon"><i class="fas fa-map-marker-alt"></i></div>
+          <div>
+            <span class="mb-modal-item-label">Location</span>
+            <span class="mb-modal-item-value" id="mdLocation">—</span>
+          </div>
+        </div>
+        <div class="mb-modal-item">
+          <div class="mb-modal-item-icon"><i class="fas fa-calendar-alt"></i></div>
+          <div>
+            <span class="mb-modal-item-label">Date</span>
+            <span class="mb-modal-item-value" id="mdDate">—</span>
+          </div>
+        </div>
+        <div class="mb-modal-item">
+          <div class="mb-modal-item-icon"><i class="fas fa-clock"></i></div>
+          <div>
+            <span class="mb-modal-item-label">Time</span>
+            <span class="mb-modal-item-value" id="mdTime">—</span>
+          </div>
+        </div>
+        <div class="mb-modal-item">
+          <div class="mb-modal-item-icon"><i class="fas fa-car"></i></div>
+          <div>
+            <span class="mb-modal-item-label">Vehicle</span>
+            <span class="mb-modal-item-value" id="mdVehicle">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="mb-modal-notes">
+        <span class="mb-modal-notes-label"><i class="fas fa-sticky-note"></i> Notes</span>
+        <p id="mdNotes">—</p>
+      </div>
+
+      <!-- Price -->
+      <div class="mb-modal-price-row">
+        <span>Total Amount</span>
+        <span class="mb-modal-price" id="mdPrice">₹0</span>
+      </div>
+    </div>
+    <div class="mb-modal-footer">
+      <button class="btn-secondary-outline" onclick="document.getElementById('detailModal').classList.remove('open')">
+        <i class="fas fa-times"></i> Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ CANCEL CONFIRMATION MODAL ═══════ -->
+<div class="mb-modal-overlay" id="cancelModal" onclick="closeCancelModal(event)">
+  <div class="mb-modal mb-modal-sm">
+    <div class="mb-modal-header mb-modal-header-danger">
+      <h3><i class="fas fa-exclamation-triangle"></i> Cancel Booking</h3>
+      <button class="mb-modal-close" onclick="document.getElementById('cancelModal').classList.remove('open')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="mb-modal-body" style="text-align:center;padding:28px 24px;">
+      <div class="mb-cancel-icon">
+        <i class="fas fa-times-circle"></i>
+      </div>
+      <h3 style="margin:12px 0 6px;font-size:1.1rem;color:var(--text);">Are you sure?</h3>
+      <p style="font-size:0.85rem;color:var(--text-mid);margin-bottom:4px;">
+        You are about to cancel the booking for:
+      </p>
+      <p style="font-weight:800;color:var(--primary);font-size:0.95rem;" id="cancelServiceName">—</p>
+      <p style="font-size:0.78rem;color:var(--text-light);margin-top:8px;">
+        This action cannot be undone.
+      </p>
+    </div>
+    <div class="mb-modal-footer" style="justify-content:center;gap:12px;">
+      <button class="btn-secondary-outline" onclick="document.getElementById('cancelModal').classList.remove('open')">
+        <i class="fas fa-arrow-left"></i> Go Back
+      </button>
+      <form method="POST" id="cancelForm" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary" style="background:var(--danger);">
+          <i class="fas fa-times"></i> Yes, Cancel Booking
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+/* ── View Details Modal ── */
+function openDetailModal(btn) {
+  const m = document.getElementById('detailModal');
+  document.getElementById('mdId').textContent = '#' + btn.dataset.id;
+  document.getElementById('mdService').textContent = btn.dataset.service;
+  document.getElementById('mdProvider').textContent = btn.dataset.provider;
+  document.getElementById('mdLocation').textContent = btn.dataset.location;
+  document.getElementById('mdDate').textContent = btn.dataset.date;
+  document.getElementById('mdTime').textContent = btn.dataset.time;
+  document.getElementById('mdVehicle').textContent = btn.dataset.vehicle;
+  document.getElementById('mdNotes').textContent = btn.dataset.notes;
+  document.getElementById('mdPrice').textContent = '₹' + btn.dataset.price;
+
+  const badge = document.getElementById('mdStatus');
+  badge.textContent = btn.dataset.status;
+  badge.className = 'badge ' + btn.dataset.statusclass;
+
+  m.classList.add('open');
+}
+function closeDetailModal(e) {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+}
+
+/* ── Cancel Modal ── */
+function openCancelModal(btn, serviceName) {
+  document.getElementById('cancelServiceName').textContent = serviceName;
+  document.getElementById('cancelForm').action = btn.dataset.cancelUrl;
+  document.getElementById('cancelModal').classList.add('open');
+}
+function closeCancelModal(e) {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+}
+
+/* ── Search Filter ── */
+function filterBookings() {
+  const query = document.getElementById('bookingSearch').value.toLowerCase();
+  document.querySelectorAll('.mb-card').forEach(card => {
+    const text = card.dataset.search || '';
+    card.style.display = text.includes(query) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}
+
 {% endblock %}

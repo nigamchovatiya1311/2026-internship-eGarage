@@ -148,11 +148,11 @@
           {% for booking in recent_bookings %}
           <tr>
             <td><strong>#{{ booking.id }}</strong></td>
-            <td>{{ booking.customer.get_full_name }}</td>
-            <td>{{ booking.service.name }}</td>
-            <td>{{ booking.provider.garage_name }}</td>
+            <td><strong>{{ booking.customer.email|default:"-" }}</strong></td>
+            <td>{{ booking.service.serviceName }}</td>
+            <td>{{ booking.provider.garageName }}</td>
             <td>{{ booking.date|date:"d M Y" }}</td>
-            <td>₹{{ booking.amount }}</td>
+            <td><strong>₹{{ booking.amount }}</strong></td>
             <td>
               {% if booking.status == 'completed' %}
                 <span class="badge success">Completed</span>
