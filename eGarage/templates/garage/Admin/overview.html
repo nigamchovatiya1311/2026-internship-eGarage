@@ -53,16 +53,21 @@
   <!-- Charts -->
   <div class="analytics-grid">
 
-    <!-- Monthly Revenue Bar Chart -->
+    <!-- Monthly Revenue Bar Chart (Dynamic) -->
     <div class="chart-card">
       <div class="chart-header"><div><h3>Monthly Revenue</h3><p>Last 6 months (₹)</p></div></div>
-      <div class="bar-chart">
-        <div class="bar-group"><div class="bar" style="--h:45%"><span class="bar-tip">₹1.8L</span></div><span class="bar-label">Oct</span></div>
-        <div class="bar-group"><div class="bar" style="--h:60%"><span class="bar-tip">₹2.1L</span></div><span class="bar-label">Nov</span></div>
-        <div class="bar-group"><div class="bar" style="--h:52%"><span class="bar-tip">₹1.9L</span></div><span class="bar-label">Dec</span></div>
-        <div class="bar-group"><div class="bar" style="--h:70%"><span class="bar-tip">₹2.4L</span></div><span class="bar-label">Jan</span></div>
-        <div class="bar-group"><div class="bar" style="--h:80%"><span class="bar-tip">₹2.6L</span></div><span class="bar-label">Feb</span></div>
-        <div class="bar-group"><div class="bar active" style="--h:95%"><span class="bar-tip">₹2.8L</span></div><span class="bar-label">Mar</span></div>
+      <div class="bar-chart" id="revenue-bar-chart">
+        {% for entry in monthly_revenue_chart %}
+        <div class="bar-group">
+          <div class="bar {% if forloop.last %}active{% endif %}"
+               style="--h:{{ entry.height }}%">
+            <span class="bar-tip">₹{{ entry.amount }}</span>
+          </div>
+          <span class="bar-label">{{ entry.month }}</span>
+        </div>
+        {% empty %}
+        <p style="color:#9ca3af;font-size:13px;padding:20px;">No revenue data yet.</p>
+        {% endfor %}
       </div>
     </div>
 
@@ -149,7 +154,13 @@
           <tr>
             <td><strong>#{{ booking.id }}</strong></td>
             <td><strong>{{ booking.customer.email|default:"-" }}</strong></td>
-            <td>{{ booking.service.serviceName }}</td>
+            <td>
+              {% if booking.service %}
+                <span style="display:inline-block;background:#fff0e8;color:#e8560a;border:1px solid #fbc9a8;border-radius:50px;padding:1px 8px;font-size:.75rem;font-weight:700;margin:1px;">{{ booking.service }}</span>
+              {% else %}
+                <span style="color:#9ca3af;">—</span>
+              {% endif %}
+            </td>
             <td>{{ booking.provider.garageName }}</td>
             <td>{{ booking.date|date:"d M Y" }}</td>
             <td><strong>₹{{ booking.amount }}</strong></td>

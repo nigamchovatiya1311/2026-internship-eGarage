@@ -25,7 +25,7 @@
         <tbody>
           {% for profile in customer_profiles %}
           <tr data-role="{{ profile.vehicle_type }}">
-            <td><div class="user-cell"><div class="u-avatar" style="background:#e8560a">{{ profile.user.first_name|first }}</div><span>{{ profile.user.get_full_name }}</span></div></td>
+            <td><div class="user-cell"><div class="u-avatar" style="background:#e8560a">{{ profile.user.first_name|first }}</div><span>{{ profile.user.email }}</span></div></td>
             <td>
               {% if profile.vehicle_type == 'car' %}<span class="vehicle-tag car"><i class="fas fa-car"></i> Car</span>
               {% else %}<span class="vehicle-tag bike"><i class="fas fa-motorcycle"></i> Bike</span>{% endif %}

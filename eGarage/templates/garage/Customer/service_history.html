@@ -72,15 +72,25 @@
 
     {% if not item.review %}
     <div class="review-form-wrap" id="review-{{ item.booking.bookingId }}" style="display:none">
-      <form method="POST" action="{% url 'submit_review' item.booking.bookingId %}">
+      <form method="POST" action="{% url 'submit_review' item.booking.bookingId %}"
+            onsubmit="return validateStarReview(this, {{ item.booking.bookingId }})">
         {% csrf_token %}
-        <div class="star-picker">
-          {% for i in "12345" %}
-          <input type="radio" name="rating" value="{{ forloop.counter }}"
-                 id="star{{ forloop.counter }}-{{ item.booking.bookingId }}"/>
-          <label for="star{{ forloop.counter }}-{{ item.booking.bookingId }}">★</label>
-          {% endfor %}
+
+        <!-- ✅ FIXED: JS star picker — hidden input holds the real selected value.
+             Old CSS radio trick was sending wrong value because it required
+             reverse HTML order (5→1) to work, but Django loops 1→5. -->
+        <input type="hidden" name="rating" id="rating-val-{{ item.booking.bookingId }}" value="0"/>
+        <div class="js-star-picker" id="stars-{{ item.booking.bookingId }}">
+          <span class="js-star" data-val="1">★</span>
+          <span class="js-star" data-val="2">★</span>
+          <span class="js-star" data-val="3">★</span>
+          <span class="js-star" data-val="4">★</span>
+          <span class="js-star" data-val="5">★</span>
         </div>
+        <p class="star-hint" id="star-hint-{{ item.booking.bookingId }}">
+          Click a star to rate
+        </p>
+
         <textarea name="comment" rows="3"
                   placeholder="Share your experience with this service..."></textarea>
         <div class="review-form-actions">
@@ -109,10 +119,92 @@
 {% endblock %}
 
 {% block extra_js %}
+<style>
+/* ── JS Star Picker ── */
+.js-star-picker {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.js-star {
+  font-size: 2rem;
+  color: #d1d5db;       /* grey = unselected */
+  cursor: pointer;
+  transition: color .15s, transform .1s;
+  line-height: 1;
+  user-select: none;
+}
+.js-star:hover,
+.js-star.hovered,
+.js-star.selected {
+  color: #f59e0b;        /* amber = selected/hovered */
+  transform: scale(1.15);
+}
+.star-hint {
+  font-size: .78rem;
+  color: #94a3b8;
+  margin: 2px 0 10px;
+}
+</style>
+
 <script>
+/* ── Toggle review form open/close ── */
 function toggleReview(id) {
   var el = document.getElementById('review-' + id);
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
+
+/* ── Validate that a star was selected before submit ── */
+function validateStarReview(form, bookingId) {
+  var val = document.getElementById('rating-val-' + bookingId).value;
+  if (!val || val === '0') {
+    var hint = document.getElementById('star-hint-' + bookingId);
+    hint.textContent  = '⚠ Please select a star rating first!';
+    hint.style.color  = '#dc2626';
+    return false;   /* block submit */
+  }
+  return true;
+}
+
+/* ── Wire up every .js-star-picker on the page ── */
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.js-star-picker').forEach(function (picker) {
+    var bookingId  = picker.id.replace('stars-', '');
+    var hiddenInput = document.getElementById('rating-val-' + bookingId);
+    var hint        = document.getElementById('star-hint-' + bookingId);
+    var stars       = picker.querySelectorAll('.js-star');
+
+    /* Helper: paint stars up to `count` as selected */
+    function paintStars(count, cls) {
+      stars.forEach(function (s, idx) {
+        s.classList.remove('selected', 'hovered');
+        if (idx < count) s.classList.add(cls);
+      });
+    }
+
+    stars.forEach(function (star, idx) {
+      /* Hover — highlight up to this star */
+      star.addEventListener('mouseenter', function () {
+        paintStars(idx + 1, 'hovered');
+      });
+
+      /* Mouse leave — go back to selected state */
+      picker.addEventListener('mouseleave', function () {
+        var current = parseInt(hiddenInput.value) || 0;
+        paintStars(current, 'selected');
+      });
+
+      /* Click — lock in the value */
+      star.addEventListener('click', function () {
+        var val = parseInt(star.dataset.val);
+        hiddenInput.value = val;          /* ✅ sets the real hidden input */
+        paintStars(val, 'selected');
+        var labels = ['','★ Poor','★★ Fair','★★★ Good','★★★★ Great','★★★★★ Excellent!'];
+        hint.textContent = labels[val] || val + ' stars';
+        hint.style.color = '#f59e0b';
+      });
+    });
+  });
+});
 </script>
 {% endblock %}

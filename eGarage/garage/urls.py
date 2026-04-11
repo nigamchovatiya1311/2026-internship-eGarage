@@ -174,6 +174,8 @@ urlpatterns = [
     path('serviceProvider/earnings/', views.provider_earnings, name='provider_earnings'),
     path('serviceProvider/earnings/export/', views.provider_earnings_export, name='provider_earnings_export'),
 
+    path('provider/complete-payment/', views.provider_complete_payment, name='provider_complete_payment'),
+
     # ══════════════════════════════════════════════════════
     #  SERVICE PROVIDER — INVOICES (FIXED booking_pk / pk)
     # ══════════════════════════════════════════════════════

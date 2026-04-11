@@ -9,18 +9,22 @@ from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.db.models import Avg as AvgF
+from django.core.mail import send_mail
+from django.conf import settings
 import csv
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth import logout
 from datetime import date, timedelta
 from calendar import month_abbr
 import uuid
+from .models import Payments
 
 # ── Import your models ──────────────────────────────────────
 from core.models import User
 from .models import (
     ServiceProvider,
     CustomerProfile,
+    Vehicle,
     Services,
     Bookings,
     Payments,
@@ -68,6 +72,39 @@ def overview(request):
         .aggregate(total=Sum('amount'))['total'] or 0
     )
 
+    # ── Last 6 months revenue chart ────────────────────────────
+    revenue_by_month = (
+        Payments.objects
+        .filter(paymentStatus='completed')
+        .annotate(month=TruncMonth('paymentDate'))
+        .values('month')
+        .annotate(total=Sum('amount'))
+        .order_by('month')
+    )
+
+    # Build a dict keyed by (year, month)
+    rev_map = {}
+    for row in revenue_by_month:
+        if row['month']:
+            rev_map[(row['month'].year, row['month'].month)] = float(row['total'] or 0)
+
+    # Generate last 6 months including current
+    monthly_revenue_chart = []
+    for i in range(5, -1, -1):
+        d     = today.replace(day=1) - timedelta(days=1) * 0
+        month = (today.month - i - 1) % 12 + 1
+        year  = today.year + ((today.month - i - 1) // 12)
+        amt   = rev_map.get((year, month), 0)
+        monthly_revenue_chart.append({
+            'month':  month_abbr[month],
+            'amount': int(amt),
+        })
+
+    # Normalise bar heights (max = 100%)
+    max_amt = max((e['amount'] for e in monthly_revenue_chart), default=1) or 1
+    for e in monthly_revenue_chart:
+        e['height'] = round((e['amount'] / max_amt) * 90 + 10)  # min 10% so bar is always visible
+
     status_counts = Bookings.objects.aggregate(
         completed   = Count('bookingId', filter=Q(bookingStatus='completed')),
         in_progress = Count('bookingId', filter=Q(bookingStatus='in_progress')),
@@ -77,7 +114,7 @@ def overview(request):
 
     recent_bookings = (
         Bookings.objects
-        .select_related('customer__user', 'service', 'provider')
+        .select_related('customer__user', 'provider').prefetch_related('services')
         .order_by('-createdAt')[:5]
     )
 
@@ -89,7 +126,7 @@ def overview(request):
         enriched_bookings.append({
             'id':       b.bookingId,
             'customer': b.customer.user,
-            'service':  b.service,
+            'service':  b.service_names,
             'provider': b.provider,
             'date':     b.bookingDate,
             'amount':   amount,
@@ -103,7 +140,8 @@ def overview(request):
         'total_users':          total_users,
         'total_bookings':       total_bookings,
         'total_providers':      total_providers,
-        'monthly_revenue':      monthly_revenue,
+        'monthly_revenue':        monthly_revenue,
+        'monthly_revenue_chart':  monthly_revenue_chart,
         'completed_bookings':   status_counts['completed'],
         'inprogress_bookings':  status_counts['in_progress'],
         'pending_bookings':     status_counts['pending'],
@@ -363,16 +401,19 @@ def services(request):
 @role_required(allowed_roles=["admin"])
 @require_POST
 def save_service(request):
-    service_id    = request.POST.get('service_id', '').strip()
-    name          = request.POST.get('name', '').strip()
-    description   = request.POST.get('description', '').strip()
-    price         = request.POST.get('price', 0)
-    duration      = request.POST.get('duration', 0)
-    provider_name = request.POST.get('provider', '').strip()
+    service_id  = request.POST.get('service_id', '').strip()
+    name        = request.POST.get('name', '').strip()
+    description = request.POST.get('description', '').strip()
+    price       = request.POST.get('price', 0)
+    duration    = request.POST.get('duration', 0)
+    # ✅ FIX: modal sends provider_id (PK integer), not provider name
+    provider_id = request.POST.get('provider_id', '').strip()
 
     if not name:
         messages.warning(request, 'Service name is required.')
         return redirect('admin_services')
+
+    vehicle_type = request.POST.get('vehicle_type', 'all').strip()
 
     if service_id:
         svc = get_object_or_404(Services, pk=service_id)
@@ -380,15 +421,25 @@ def save_service(request):
         svc.serviceDescription = description
         svc.servicePrice       = price
         svc.estimatedDuration  = duration
+        svc.vehicleType        = vehicle_type
+        # ✅ FIX: update provider if a new one was selected
+        if provider_id:
+            provider_obj = get_object_or_404(ServiceProvider, pk=provider_id)
+            svc.providerId = provider_obj
         svc.save()
         messages.success(request, f'"{name}" updated successfully.')
     else:
-        provider_obj = ServiceProvider.objects.filter(garageName=provider_name).first()
+        # ✅ FIX: lookup by PK, not garageName — raises 400 if missing
+        if not provider_id:
+            messages.error(request, 'Please select a provider.')
+            return redirect('admin_services')
+        provider_obj = get_object_or_404(ServiceProvider, pk=provider_id)
         Services.objects.create(
             serviceName        = name,
             serviceDescription = description,
             servicePrice       = price,
             estimatedDuration  = duration,
+            vehicleType        = vehicle_type,
             providerId         = provider_obj,
         )
         messages.success(request, f'"{name}" added successfully.')
@@ -408,7 +459,7 @@ def monitor_bookings(request):
 
     qs = (
         Bookings.objects
-        .select_related('customer__user', 'service', 'provider')
+        .select_related('customer__user', 'provider').prefetch_related('services')
         .order_by('-bookingDate', '-bookingTime')
     )
 
@@ -416,7 +467,7 @@ def monitor_bookings(request):
         qs = qs.filter(
             Q(bookingId__icontains=q)                  |
             Q(customer__user__first_name__icontains=q) |
-            Q(service__serviceName__icontains=q)       |
+            Q(services__serviceName__icontains=q)       |
             Q(provider__garageName__icontains=q)
         )
     if status not in ('', 'all'):
@@ -429,7 +480,7 @@ def monitor_bookings(request):
         b.status    = b.bookingStatus
         b.date      = b.bookingDate
         b.time_slot = b.bookingTime
-        b.service.name         = b.service.serviceName
+        b.service_display      = b.service_names
         b.provider.garage_name = b.provider.garageName
         b.amount = b.payment.amount if hasattr(b, 'payment') and b.payment else 0
         b.vehicle_number = (
@@ -600,8 +651,7 @@ def reviews(request):
     for r in qs:
         r.id           = r.reviewId
         r.user         = r.customer.user
-        r.service      = r.booking.service
-        r.service.name = r.booking.service.serviceName
+        r.service_name = r.booking.service_names
         r.provider.garage_name = r.provider.garageName
         r.created_at   = r.createdAt
         r.is_flagged   = getattr(r, 'isFlagged', False)
@@ -784,14 +834,14 @@ def analytics(request):
     COLORS = ['#e8560a', '#1e3a5f', '#f9a825', '#16a34a', '#7c3aed', '#dc2626']
     service_qs = (
         Bookings.objects
-        .values('service__serviceName')
+        .values('services__serviceName')
         .annotate(count=Count('bookingId'))
         .order_by('-count')[:6]
     )
     max_count = service_qs[0]['count'] if service_qs else 1
     service_stats = [
         {
-            'name':  item['service__serviceName'],
+            'name':  item['services__serviceName'],
             'count': item['count'],
             'pct':   round(item['count'] / max_count * 100),
             'color': COLORS[i % 6],
@@ -873,7 +923,7 @@ def export_report(request, report_type, fmt):
             qs = Bookings.objects.filter(
                 bookingDate__gte=first_day,
                 bookingDate__lte=last_day,
-            ).select_related('customer__user', 'service', 'provider').order_by('-bookingDate')
+            ).select_related('customer__user', 'provider').prefetch_related('services').order_by('-bookingDate')
         except Exception:
             qs = Bookings.objects.all().select_related(
                 'customer__user', 'service', 'provider'
@@ -901,7 +951,7 @@ def export_report(request, report_type, fmt):
                 'BK' + str(b.bookingId),
                 _uname(b.customer.user),
                 b.customer.user.email,
-                b.service.serviceName,
+                b.service_names,
                 b.provider.garageName,
                 str(b.bookingDate),
                 str(b.bookingTime) if b.bookingTime else '',
@@ -915,7 +965,7 @@ def export_report(request, report_type, fmt):
     elif report_type == 'payments':
         qs = Payments.objects.filter(
             paymentDate__date__range=(first_day, last_day)
-        ).select_related('booking__customer__user', 'booking__service').order_by('-paymentDate')
+        ).select_related('booking__customer__user').order_by('-paymentDate')
         if extra:
             qs = qs.filter(paymentMethod=extra.lower())
         headers = ['ID', 'Customer', 'Service', 'Amount', 'Method', 'Status', 'Txn ID', 'Date']
@@ -924,7 +974,7 @@ def export_report(request, report_type, fmt):
             rows.append([
                 'PAY' + str(p.paymentId),
                 _uname(p.booking.customer.user),
-                p.booking.service.serviceName,
+                p.booking.service_names,
                 str(p.amount),
                 p.paymentMethod.title(),
                 p.paymentStatus.title(),
@@ -999,11 +1049,10 @@ def export_report(request, report_type, fmt):
         qs = Invoice.objects.filter(
             invoiceDate__gte=first_day,
             invoiceDate__lte=last_day,
-        ).select_related('booking__customer__user', 'booking__service',
-                         'booking__provider').order_by('-invoiceDate')
+        ).select_related('booking__customer__user', 'booking__provider').order_by('-invoiceDate')
         if not qs.exists():
             qs = Invoice.objects.all().select_related(
-                'booking__customer__user', 'booking__service', 'booking__provider'
+                'booking__customer__user', 'booking__provider'
             ).order_by('-invoiceDate')
             period_label = period_label + ' (All Invoices — none in period)'
         headers = ['Invoice No', 'Customer', 'Service', 'Provider', 'Date', 'Total', 'Tax', 'Discount']
@@ -1012,7 +1061,7 @@ def export_report(request, report_type, fmt):
             rows.append([
                 inv.invoiceNumber,
                 _uname(inv.booking.customer.user),
-                inv.booking.service.serviceName,
+                inv.booking.service_names,
                 inv.booking.provider.garageName,
                 str(inv.invoiceDate),
                 str(inv.totalAmount),
@@ -1025,13 +1074,13 @@ def export_report(request, report_type, fmt):
         qs = Review.objects.filter(
             createdAt__date__gte=first_day,
             createdAt__date__lte=last_day,
-        ).select_related('customer__user', 'provider', 'booking__service').order_by('-createdAt')
+        ).select_related('customer__user', 'provider').order_by('-createdAt')
         if extra == '5':     qs = qs.filter(rating=5)
         elif extra == '4':   qs = qs.filter(rating=4)
         elif extra == 'low': qs = qs.filter(rating__lte=2)
         if not qs.exists():
             qs = Review.objects.all().select_related(
-                'customer__user', 'provider', 'booking__service'
+                'customer__user', 'provider'
             ).order_by('-createdAt')
             if extra == '5':     qs = qs.filter(rating=5)
             elif extra == '4':   qs = qs.filter(rating=4)
@@ -1042,8 +1091,8 @@ def export_report(request, report_type, fmt):
         for rv in qs:
             service_name = ''
             try:
-                if rv.booking and rv.booking.service:
-                    service_name = rv.booking.service.serviceName
+                if rv.booking:
+                    service_name = rv.booking.service_names
             except Exception:
                 service_name = ''
             provider_name = ''
@@ -1291,17 +1340,18 @@ def customer_home(request):
     .filter(booking__customer=customer, paymentStatus='completed')
     .aggregate(total=Sum('amount'))['total'] or 0
     )
-    service_total = (
-        Bookings.objects
-        .filter(customer=customer, bookingStatus='completed')
-        .aggregate(total=Sum('service__servicePrice'))['total'] or 0
+    service_total = sum(
+        b.total_price
+        for b in Bookings.objects.filter(
+            customer=customer, bookingStatus='completed'
+        ).prefetch_related('services')
     )
     total_spent = paid_total if paid_total > 0 else service_total
 
     recent_bookings = (
         Bookings.objects
         .filter(customer=customer)
-        .select_related('service', 'provider')
+        .select_related('provider').prefetch_related('services')
         .order_by('-bookingDate', '-createdAt')[:4]
     )
 
@@ -1333,48 +1383,46 @@ def book_service(request):
         customer = CustomerProfile.objects.create(user=request.user)
  
     if request.method == 'POST':
-        service_id  = request.POST.get('service_id')
+        service_ids = request.POST.getlist('service_id')   # ✅ multi-select list
         provider_id = request.POST.get('provider_id')
         bdate       = request.POST.get('booking_date')
         btime       = request.POST.get('booking_time') or None
         notes       = request.POST.get('notes', '').strip()
- 
-        # ✅ FIX: read vehicle_id and resolve to a vehicle
+
+        # ✅ vehicle FK from Vehicle model
         vehicle_id  = request.POST.get('vehicle_id', '').strip()
-        vehicle_tag = ''
+        vehicle_obj = None
         if vehicle_id:
             all_vehicles = _load_vehicles(customer)
             for v in all_vehicles:
                 if str(v.id) == vehicle_id:
-                    vehicle_tag = f'[Vehicle: {v.vehicleNumber} — {v.vehicleModel}]'
+                    notes = f'[Vehicle: {v.vehicleNumber} — {v.vehicleModel}]\n{notes}'.strip()
                     break
-        # Prepend vehicle info to notes so it is visible in the booking
-        if vehicle_tag:
-            notes = f'{vehicle_tag}\n{notes}'.strip()
- 
-        if not service_id or not bdate:
-            messages.error(request, 'Please select a service and a booking date.')
+
+        if not service_ids or not bdate:
+            messages.error(request, 'Please select at least one service and a booking date.')
             return redirect('book_service')
- 
-        service  = get_object_or_404(Services, pk=service_id, isAvailable=True)
-        provider = get_object_or_404(ServiceProvider, pk=provider_id, approvalStatus='approved')
- 
-        Bookings.objects.create(
+
+        services_qs  = Services.objects.filter(pk__in=service_ids, isAvailable=True)
+        provider     = get_object_or_404(ServiceProvider, pk=provider_id, approvalStatus='approved')
+        service_list = ', '.join(s.serviceName for s in services_qs)
+
+        booking = Bookings.objects.create(
             customer      = customer,
             provider      = provider,
-            service       = service,
             bookingDate   = bdate,
             bookingTime   = btime,
-            notes         = notes,   # now includes vehicle info
+            notes         = notes,
             bookingStatus = 'pending',
         )
- 
+        booking.services.set(services_qs)   # ✅ attach all selected services
+
         Notification.objects.create(
             user             = request.user,
             notificationType = 'booking_confirmed',
             title            = 'Booking Request Received',
             message          = (
-                f'Your booking for {service.serviceName} at '
+                f'Your booking for {service_list} at '
                 f'{provider.garageName} on {bdate} has been received '
                 f'and is pending confirmation.'
             ),
@@ -1428,7 +1476,7 @@ def my_bookings(request):
     # Filtered bookings for display
     qs = (
         all_qs
-        .select_related('service', 'provider')
+        .select_related('provider').prefetch_related('services')
         .order_by('-bookingDate', '-createdAt')
     )
 
@@ -1468,7 +1516,7 @@ def cancel_booking(request, pk):
             title            = 'Booking Cancelled',
             message          = (
                 f'Your booking #{booking.bookingId} for '
-                f'{booking.service.serviceName} has been cancelled.'
+                f'{booking.service_names} has been cancelled.'
             ),
         )
         messages.success(request, f'Booking #{booking.bookingId} cancelled successfully.')
@@ -1488,7 +1536,7 @@ def service_history(request):
     completed = (
         Bookings.objects
         .filter(customer=customer, bookingStatus='completed')
-        .select_related('service', 'provider')
+        .select_related('provider').prefetch_related('services')
         .order_by('-bookingDate')
     )
 
@@ -1526,7 +1574,7 @@ def customer_invoice_view(request, pk):
     customer = get_object_or_404(CustomerProfile, user=request.user)
     invoice  = get_object_or_404(
         Invoice.objects.select_related(
-            'booking__customer__user', 'booking__service',
+            'booking__customer__user',
             'booking__provider', 'payment'
         ),
         pk=pk, booking__customer=customer
@@ -1542,7 +1590,7 @@ def customer_invoice_view(request, pk):
         'tax_amt':       float(invoice.taxAmount),
         'disc_amt':      float(invoice.discountAmount),
         'total_amt':     float(invoice.totalAmount),
-        'service_price': float(b.service.servicePrice),
+        'service_price': float(b.total_price),
     }
     return render(request, 'garage/Customer/customer_invoice_view.html', context)
 
@@ -1552,7 +1600,7 @@ def customer_download_invoice(request, pk):
     customer = get_object_or_404(CustomerProfile, user=request.user)
     invoice  = get_object_or_404(
         Invoice.objects.select_related(
-            'booking__customer__user', 'booking__service',
+            'booking__customer__user',
             'booking__provider__user', 'payment'
         ),
         pk=pk, booking__customer=customer
@@ -1582,7 +1630,7 @@ def customer_download_invoice(request, pk):
     writer.writerow(['Vehicle',         b.customer.vehicleNumber])
     writer.writerow([])
     writer.writerow(['DESCRIPTION',     'AMOUNT'])
-    writer.writerow([b.service.serviceName, f'Rs.{float(b.service.servicePrice):.2f}'])
+    writer.writerow([b.service_names, f'Rs.{float(b.total_price):.2f}'])
     writer.writerow(['GST',             f'Rs.{float(invoice.taxAmount):.2f}'])
     writer.writerow(['Discount',        f'-Rs.{float(invoice.discountAmount):.2f}'])
     writer.writerow(['TOTAL PAYABLE',   f'Rs.{float(invoice.totalAmount):.2f}'])
@@ -1910,7 +1958,7 @@ def my_payments(request):
     qs = (
         Payments.objects
         .filter(booking__customer=customer)
-        .select_related('booking__service', 'booking__provider')
+        .select_related('booking__provider').prefetch_related('booking__services')
         .order_by('-paymentDate')
     )
 
@@ -2131,7 +2179,7 @@ def provider_overview(request):
     todays_bookings = (
         Bookings.objects
         .filter(provider=provider, bookingDate=today)
-        .select_related('customer__user', 'service')
+        .select_related('customer__user').prefetch_related('services')
         .order_by('bookingTime')
     )
 
@@ -2164,7 +2212,7 @@ def provider_bookings(request):
     qs = (
         Bookings.objects
         .filter(provider=provider)
-        .select_related('customer__user', 'service')
+        .select_related('customer__user').prefetch_related('services')
         .order_by('-bookingDate', '-bookingTime')
     )
     if status not in ('', 'all'):
@@ -2203,15 +2251,104 @@ def provider_bookings(request):
     return render(request, 'garage/Provider/bookings.html', context)
 
 
-@role_required(allowed_roles=["service_provider"])
 def provider_booking_detail(request, booking_id):
-    provider = get_object_or_404(ServiceProvider, user=request.user)
-    booking  = get_object_or_404(
-        Bookings.objects.select_related('customer__user', 'service'),
+    """
+    Handles both AJAX (eye-button modal) and normal page requests.
+    Auth is checked inline so AJAX callers get a JSON error instead of
+    a redirect that the browser cannot follow and that causes 'Failed to fetch'.
+    """
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
+    # ── Auth guard (AJAX-aware) ──────────────────────────────
+    if not request.user.is_authenticated:
+        if is_ajax:
+            return JsonResponse({'error': 'Session expired. Please log in again.'}, status=401)
+        return redirect('login')
+
+    provider = ServiceProvider.objects.filter(user=request.user).first()
+    if not provider:
+        if is_ajax:
+            return JsonResponse({'error': 'Provider profile not found.'}, status=403)
+        return redirect('login')
+
+    booking = get_object_or_404(
+        Bookings.objects.select_related('customer__user').prefetch_related('services'),
         bookingId=booking_id,
         provider=provider,
     )
 
+    # ✅ Return JSON for AJAX eye-button requests
+    if is_ajax:
+        # ── vehicle ──────────────────────────────────────────────
+        vehicle_info = '—'
+        try:
+            if getattr(booking, 'vehicle', None) and booking.vehicle:
+                vehicle_info = (
+                    f'{booking.vehicle.vehicleNumber} — {booking.vehicle.vehicleModel}'
+                )
+            elif getattr(booking.customer, 'vehicleNumber', None):
+                vehicle_info = booking.customer.vehicleNumber
+        except Exception:
+            vehicle_info = getattr(booking.customer, 'vehicleNumber', '—') or '—'
+
+        # ── services / price ─────────────────────────────────────
+        try:
+            service_text = getattr(booking, 'service_names', None) or 'N/A'
+        except Exception:
+            service_text = 'N/A'
+
+        try:
+            price_text = str(getattr(booking, 'total_price', 0) or 0)
+        except Exception:
+            price_text = '0'
+
+        # ── customer info ────────────────────────────────────────
+        try:
+            _u = booking.customer.user
+            _first = (_u.first_name or '').strip()
+            _last  = (_u.last_name  or '').strip()
+            full_name = f'{_first} {_last}'.strip()
+            customer_name = full_name if full_name else (_u.email or '—')
+        except Exception:
+            customer_name = '—'
+
+        try:
+            customer_email = booking.customer.user.email
+        except Exception:
+            customer_email = '—'
+
+        # ── date / time ──────────────────────────────────────────
+        try:
+            date_str = booking.bookingDate.strftime('%d %b %Y') if booking.bookingDate else '—'
+        except Exception:
+            date_str = '—'
+
+        try:
+            time_str = str(booking.bookingTime) if booking.bookingTime else '—'
+        except Exception:
+            time_str = '—'
+
+        # ── notes ────────────────────────────────────────────────
+        try:
+            notes_str = getattr(booking, 'notes', None) or '—'
+        except Exception:
+            notes_str = '—'
+
+        return JsonResponse({
+            'bookingId':      booking.bookingId,
+            'customer':       customer_name,
+            'email':          customer_email,
+            'vehicle':        vehicle_info,
+            'service':        service_text,
+            'price':          price_text,
+            'date':           date_str,
+            'time':           time_str,
+            'status':         booking.bookingStatus,
+            'status_display': booking.get_bookingStatus_display(),
+            'notes':          notes_str,
+        })
+
+    # Normal page render (direct URL visit)
     has_invoice = False
     invoice = None
     try:
@@ -2228,30 +2365,6 @@ def provider_booking_detail(request, booking_id):
         'has_invoice': has_invoice,
         'invoice':     invoice,
     }
-    html = f"""
-    {{% extends "garage/Provider/base.html" %}}
-    {{% block page_title %}}Booking #{booking.bookingId}{{% endblock %}}
-    {{% block breadcrumb %}}Bookings / #{booking.bookingId}{{% endblock %}}
-    {{% block content %}}
-    <div class="card" style="padding:24px">
-        <h2 style="color:#1e3a5f;margin-bottom:16px">Booking #BK{booking.bookingId}</h2>
-        <table style="width:100%;font-size:15px;line-height:2">
-            <tr><td style="font-weight:600;width:200px">Customer</td><td>{booking.customer.user.get_full_name()}</td></tr>
-            <tr><td style="font-weight:600">Email</td><td>{booking.customer.user.email}</td></tr>
-            <tr><td style="font-weight:600">Vehicle</td><td>{booking.customer.vehicleNumber}</td></tr>
-            <tr><td style="font-weight:600">Service</td><td>{booking.service.serviceName}</td></tr>
-            <tr><td style="font-weight:600">Price</td><td>₹{booking.service.servicePrice}</td></tr>
-            <tr><td style="font-weight:600">Date</td><td>{booking.bookingDate}</td></tr>
-            <tr><td style="font-weight:600">Time</td><td>{booking.bookingTime or '—'}</td></tr>
-            <tr><td style="font-weight:600">Status</td><td><span class="badge {booking.bookingStatus}">{booking.get_bookingStatus_display()}</span></td></tr>
-            <tr><td style="font-weight:600">Notes</td><td>{booking.notes or '—'}</td></tr>
-        </table>
-        <div style="margin-top:20px;display:flex;gap:10px">
-            <a href="{{% url 'provider_bookings' %}}" class="btn" style="background:#6b7280;color:#fff;padding:8px 20px;border-radius:6px;text-decoration:none">← Back to Bookings</a>
-        </div>
-    </div>
-    {{% endblock %}}
-    """
     return render(request, 'garage/Provider/booking_detail.html', context)
 
 
@@ -2259,12 +2372,10 @@ def provider_booking_detail(request, booking_id):
 @require_POST
 def provider_confirm_booking(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    booking  = get_object_or_404(
-        Bookings,
-        bookingId=booking_id,
-        provider=provider,
-        bookingStatus='pending',
-    )
+    booking  = get_object_or_404(Bookings, bookingId=booking_id, provider=provider)
+    if booking.bookingStatus != 'pending':
+        messages.warning(request, f'Booking #{booking.bookingId} cannot be confirmed (current status: {booking.get_bookingStatus_display()}).')
+        return redirect('provider_bookings')
     booking.bookingStatus = 'confirmed'
     booking.save()
     Notification.objects.create(
@@ -2272,7 +2383,7 @@ def provider_confirm_booking(request, booking_id):
         notificationType='booking_confirmed',
         title='Booking Confirmed',
         message=(
-            f'Your booking #{booking.bookingId} for {booking.service.serviceName} '
+            f'Your booking #{booking.bookingId} for {booking.service_names} '
             f'at {provider.garageName} has been confirmed.'
         ),
     )
@@ -2284,12 +2395,10 @@ def provider_confirm_booking(request, booking_id):
 @require_POST
 def provider_start_booking(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    booking  = get_object_or_404(
-        Bookings,
-        bookingId=booking_id,
-        provider=provider,
-        bookingStatus='confirmed',
-    )
+    booking  = get_object_or_404(Bookings, bookingId=booking_id, provider=provider)
+    if booking.bookingStatus != 'confirmed':
+        messages.warning(request, f'Booking #{booking.bookingId} cannot be started (current status: {booking.get_bookingStatus_display()}).')
+        return redirect('provider_bookings')
     booking.bookingStatus = 'in_progress'
     booking.save()
     Notification.objects.create(
@@ -2297,7 +2406,7 @@ def provider_start_booking(request, booking_id):
         notificationType='general',
         title='Service Started',
         message=(
-            f'Your {booking.service.serviceName} service at '
+            f'Your {booking.service_names} service at '
             f'{provider.garageName} has started.'
         ),
     )
@@ -2309,12 +2418,10 @@ def provider_start_booking(request, booking_id):
 @require_POST
 def provider_complete_booking(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
-    booking  = get_object_or_404(
-        Bookings,
-        bookingId=booking_id,
-        provider=provider,
-        bookingStatus='in_progress',
-    )
+    booking  = get_object_or_404(Bookings, bookingId=booking_id, provider=provider)
+    if booking.bookingStatus != 'in_progress':
+        messages.warning(request, f'Booking #{booking.bookingId} cannot be completed (current status: {booking.get_bookingStatus_display()}).')
+        return redirect('provider_bookings')
     booking.bookingStatus = 'completed'
     booking.save()
     Notification.objects.create(
@@ -2322,7 +2429,7 @@ def provider_complete_booking(request, booking_id):
         notificationType='service_completed',
         title='Service Completed',
         message=(
-            f'Your {booking.service.serviceName} service by {provider.garageName} '
+            f'Your {booking.service_names} service by {provider.garageName} '
             f'is complete. Please leave a review!'
         ),
     )
@@ -2349,12 +2456,13 @@ def provider_services(request):
 @require_POST
 def provider_service_save(request):
     provider    = get_object_or_404(ServiceProvider, user=request.user)
-    service_id  = request.POST.get('service_id', '').strip()
-    name        = request.POST.get('name', '').strip()
-    description = request.POST.get('description', '').strip()
-    price       = request.POST.get('price', 0)
-    duration    = request.POST.get('duration') or None
-    available   = request.POST.get('available', 'true') == 'true'
+    service_id   = request.POST.get('service_id', '').strip()
+    name         = request.POST.get('name', '').strip()
+    description  = request.POST.get('description', '').strip()
+    price        = request.POST.get('price', 0)
+    duration     = request.POST.get('duration') or None
+    available    = request.POST.get('available', 'true') == 'true'
+    vehicle_type = request.POST.get('vehicle_type', 'all').strip()  # ✅ FIX: was missing
 
     if not name:
         messages.error(request, 'Service name is required.')
@@ -2367,6 +2475,7 @@ def provider_service_save(request):
         svc.servicePrice       = price
         svc.estimatedDuration  = duration
         svc.isAvailable        = available
+        svc.vehicleType        = vehicle_type  # ✅ FIX: was never saved on edit
         svc.save()
         messages.success(request, f'"{name}" updated successfully.')
     else:
@@ -2377,6 +2486,7 @@ def provider_service_save(request):
             servicePrice       = price,
             estimatedDuration  = duration,
             isAvailable        = available,
+            vehicleType        = vehicle_type,  # ✅ FIX: was never saved on create
         )
         messages.success(request, f'"{name}" added successfully.')
 
@@ -2403,7 +2513,7 @@ def provider_reviews(request):
     reviews_qs = (
         Review.objects
         .filter(provider=provider)
-        .select_related('customer__user', 'booking__service')
+        .select_related('customer__user')
         .order_by('-createdAt')
     )
 
@@ -2439,7 +2549,7 @@ def provider_earnings(request):
     payments_qs = (
         Payments.objects
         .filter(booking__provider=provider)
-        .select_related('booking__customer__user', 'booking__service')
+        .select_related('booking__customer__user')
         .order_by('-paymentDate')
     )
     totals = payments_qs.aggregate(
@@ -2457,7 +2567,7 @@ def provider_earnings(request):
     invoices_qs = (
         Invoice.objects
         .filter(booking__provider=provider)
-        .select_related('booking__customer__user', 'booking__service', 'payment')
+        .select_related('booking__customer__user', 'payment')
         .order_by('-invoiceDate')
     )
     total_invoices = invoices_qs.count()
@@ -2476,6 +2586,34 @@ def provider_earnings(request):
         'total_invoices':  total_invoices,
     }
     return render(request, 'garage/Provider/earnings.html', context)
+
+
+# ============================================================
+# provider payout request, payout history, etc. can be implemented here
+# ============================================================
+@login_required
+@require_POST
+def provider_complete_payment(request):
+    try:
+        data = _json.loads(request.body)
+        pay_id = data.get('payment_id')
+
+        payment = Payments.objects.get(
+            paymentId=pay_id,
+            paymentStatus='pending'
+        )
+        payment.paymentStatus = 'completed'
+        payment.save()
+        return JsonResponse({'success': True})
+
+    except Payments.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Payment not found.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+
 
 
 # ============================================================
@@ -2612,14 +2750,17 @@ def _next_invoice_number(provider):
 #  PROVIDER — GENERATE INVOICE
 # ============================================================
 @role_required(allowed_roles=["service_provider"])
+@role_required(allowed_roles=["service_provider"])
 def provider_invoice_generate(request, booking_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     booking  = get_object_or_404(
-        Bookings.objects.select_related('customer__user', 'service'),
+        Bookings.objects.select_related('customer__user').prefetch_related('services'),
         bookingId=booking_id,
         provider=provider,
-        bookingStatus='completed',
     )
+    if booking.bookingStatus != 'completed':
+        messages.warning(request, f'Invoice can only be generated for completed bookings (current status: {booking.get_bookingStatus_display()}).')
+        return redirect('provider_bookings')
 
     existing_invoice = None
     try:
@@ -2634,9 +2775,9 @@ def provider_invoice_generate(request, booking_id):
     if request.method == 'POST':
         inv_num      = request.POST.get('invoice_number', '').strip()
         gst_pct      = float(request.POST.get('gst_percent', 18))
-        gst_amount   = float(request.POST.get('gst_amount', 0))
-        discount     = float(request.POST.get('discount_amount', 0))
-        total_amount = float(request.POST.get('total_amount', booking.service.servicePrice))
+        gst_amount   = float(request.POST.get('gst_amount') or 0)
+        discount     = float(request.POST.get('discount_amount') or 0)
+        total_amount = float(request.POST.get('total_amount', booking.total_price))
         pay_method   = request.POST.get('payment_method', 'cash')
         pay_status   = request.POST.get('payment_status', 'completed')
         notes        = request.POST.get('notes', '').strip()
@@ -2669,12 +2810,58 @@ def provider_invoice_generate(request, booking_id):
             title            = 'Invoice Generated',
             message          = (
                 f'Invoice {inv_num} has been generated for your '
-                f'{booking.service.serviceName} booking. '
+                f'{booking.service_names} booking. '
                 f'Total: ₹{total_amount}.'
             ),
         )
 
-        messages.success(request, f'Invoice {inv_num} generated successfully!')
+        # ── Send email to customer ──────────────────────────────
+        customer_email = booking.customer.user.email
+        customer_name  = booking.customer.user.get_full_name() or customer_email
+        invoice_url    = request.build_absolute_uri(
+            f'/garage/serviceProvider/invoice/{invoice.invoiceId}/view/'
+        )
+
+        email_subject = f'Your Service is Completed – Invoice {inv_num} | {provider.garageName}'
+
+        email_body = f"""Dear {customer_name},
+
+Your vehicle service at {provider.garageName} has been successfully completed.
+
+──────────────────────────────
+  Invoice Details
+──────────────────────────────
+  Invoice No  : {inv_num}
+  Services    : {booking.service_names}
+  Date        : {date.today().strftime('%d %b %Y')}
+  Total Amount: ₹{total_amount:.2f}
+  Payment     : {pay_method.upper()} — {pay_status.capitalize()}
+──────────────────────────────
+
+You can view and download your invoice here:
+{invoice_url}
+
+Thank you for choosing {provider.garageName}!
+We look forward to serving you again.
+
+Regards,
+{provider.garageName}
+eGarage Team
+"""
+
+        try:
+            send_mail(
+                subject      = email_subject,
+                message      = email_body,
+                from_email   = settings.DEFAULT_FROM_EMAIL,
+                recipient_list = [customer_email],
+                fail_silently  = False,
+            )
+        except Exception as mail_err:
+            # Don't block invoice creation if email fails — just log it
+            print(f'[eGarage] Invoice email failed for {customer_email}: {mail_err}')
+
+        messages.success(request, f'Invoice {inv_num} generated & email sent to {customer_email}!')
         return redirect('provider_invoice_view', invoice_id=invoice.invoiceId)
 
     context = {
@@ -2696,7 +2883,7 @@ def provider_invoice_view(request, invoice_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     invoice  = get_object_or_404(
         Invoice.objects.select_related(
-            'booking__customer__user', 'booking__service', 'payment'
+            'booking__customer__user', 'payment'
         ),
         invoiceId=invoice_id,
         booking__provider=provider,
@@ -2720,7 +2907,7 @@ def provider_invoice_download(request, invoice_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     invoice  = get_object_or_404(
         Invoice.objects.select_related(
-            'booking__customer__user', 'booking__service', 'payment'
+            'booking__customer__user', 'payment'
         ),
         invoiceId=invoice_id,
         booking__provider=provider,
@@ -2747,7 +2934,7 @@ def provider_invoice_download(request, invoice_id):
     writer.writerow(['Vehicle',         b.customer.vehicleNumber])
     writer.writerow([])
     writer.writerow(['DESCRIPTION',     'AMOUNT'])
-    writer.writerow([b.service.serviceName, 'Rs.' + str(b.service.servicePrice)])
+    writer.writerow([b.service_names, 'Rs.' + str(b.total_price)])
     writer.writerow(['GST',             'Rs.' + str(invoice.taxAmount)])
     writer.writerow(['Discount',        'Rs.' + str(invoice.discountAmount)])
     writer.writerow(['TOTAL',           'Rs.' + str(invoice.totalAmount)])
@@ -2767,7 +2954,7 @@ def provider_invoice_print(request, invoice_id):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     invoice  = get_object_or_404(
         Invoice.objects.select_related(
-            'booking__customer__user', 'booking__service', 'payment'
+            'booking__customer__user', 'payment'
         ),
         invoiceId=invoice_id,
         booking__provider=provider,
@@ -2860,7 +3047,7 @@ tbody td {{ padding:10px 14px; border-bottom:1px solid #eee; font-size:14px; }}
     <table>
       <thead><tr><th>Description</th><th style="text-align:right">Amount</th></tr></thead>
       <tbody>
-        <tr><td>{b.service.serviceName}</td><td style="text-align:right">₹{base_amt:.2f}</td></tr>
+        <tr><td>{b.service_names}</td><td style="text-align:right">₹{base_amt:.2f}</td></tr>
         <tr><td>GST / Tax</td><td style="text-align:right">₹{invoice.taxAmount:.2f}</td></tr>
         <tr><td>Discount</td><td style="text-align:right">- ₹{invoice.discountAmount:.2f}</td></tr>
         <tr class="total-row"><td>Total Payable</td><td style="text-align:right">₹{invoice.totalAmount:.2f}</td></tr>
@@ -2892,7 +3079,7 @@ def provider_invoices_export(request):
     provider = get_object_or_404(ServiceProvider, user=request.user)
     invoices_qs = Invoice.objects.filter(
         booking__provider=provider
-    ).select_related('booking__customer__user', 'booking__service', 'payment').order_by('-invoiceDate')
+    ).select_related('booking__customer__user', 'payment').order_by('-invoiceDate')
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = (
@@ -2908,9 +3095,9 @@ def provider_invoices_export(request):
             inv.invoiceDate,
             f'#BK{b.bookingId}',
             b.customer.user.get_full_name(),
-            b.service.serviceName,
+            b.service_names,
             b.customer.vehicleNumber,
-            b.service.servicePrice,
+            b.total_price,
             inv.taxAmount,
             inv.discountAmount,
             inv.totalAmount,
@@ -2941,7 +3128,7 @@ def provider_earnings_export(request):
     pay_qs = (
         Payments.objects
         .filter(booking__provider=provider)
-        .select_related('booking__customer__user', 'booking__service')
+        .select_related('booking__customer__user')
         .order_by('-paymentDate')
     )
     for pay in pay_qs:
@@ -2949,7 +3136,7 @@ def provider_earnings_export(request):
             '#PAY' + str(pay.paymentId),
             '#BK' + str(pay.booking.bookingId),
             pay.booking.customer.user.get_full_name(),
-            pay.booking.service.serviceName,
+            pay.booking.service_names,
             str(pay.amount),
             pay.get_paymentMethod_display(),
             pay.paymentDate.strftime('%d %b %Y') if pay.paymentDate else '',
@@ -2965,7 +3152,7 @@ def provider_earnings_export(request):
     inv_qs = (
         Invoice.objects
         .filter(booking__provider=provider)
-        .select_related('booking__customer__user', 'booking__service', 'payment')
+        .select_related('booking__customer__user', 'payment')
         .order_by('-invoiceDate')
     )
     for inv in inv_qs:
@@ -2974,7 +3161,7 @@ def provider_earnings_export(request):
             inv.invoiceNumber,
             '#BK' + str(b.bookingId),
             b.customer.user.get_full_name(),
-            b.service.serviceName,
+            b.service_names,
             b.customer.vehicleNumber,
             str(inv.taxAmount),
             str(inv.discountAmount),

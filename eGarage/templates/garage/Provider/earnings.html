@@ -84,7 +84,11 @@
               {% endif %}
             </div>
           </td>
-          <td>{{ pay.booking.service.serviceName }}</td>
+          <td>
+              {% for svc in pay.booking.services.all %}
+              <span style="display:inline-block;background:#fff0e8;color:#e8560a;border:1px solid #fbc9a8;border-radius:50px;padding:1px 8px;font-size:.75rem;font-weight:700;margin:1px;">{{ svc.serviceName }}</span>
+            {% empty %}—{% endfor %}          
+          </td>
           <td><strong>₹{{ pay.amount }}</strong></td>
           <td>
             <span class="method-tag {{ pay.paymentMethod }}">
@@ -93,7 +97,22 @@
             </span>
           </td>
           <td>{{ pay.paymentDate|date:"d M Y" }}</td>
-          <td><span class="badge {{ pay.paymentStatus }}">{{ pay.get_paymentStatus_display }}</span></td>
+          <td>
+            {% if pay.paymentStatus == 'pending' %}
+              <span
+                class="badge pending complete-pending-btn"
+                data-pay-id="{{ pay.paymentId }}"
+                data-amount="{{ pay.amount }}"
+                title="Click to mark as Completed"
+                style="cursor:pointer;user-select:none;"
+              >
+                {{ pay.get_paymentStatus_display }}
+                <i class="fas fa-check-circle" style="margin-left:4px;font-size:0.75rem;opacity:0.7;"></i>
+              </span>
+            {% else %}
+              <span class="badge {{ pay.paymentStatus }}">{{ pay.get_paymentStatus_display }}</span>
+            {% endif %}
+          </td>
         </tr>
         {% empty %}
         <tr><td colspan="8" class="empty-cell">No payment records yet.</td></tr>
@@ -162,7 +181,11 @@
               {% endif %}
             </div>
           </td>
-          <td>{{ inv.booking.service.serviceName }}</td>
+          <td>
+            {% for svc in inv.booking.services.all %}
+              <span style="display:inline-block;background:#fff0e8;color:#e8560a;border:1px solid #fbc9a8;border-radius:50px;padding:1px 8px;font-size:.75rem;font-weight:700;margin:1px;">{{ svc.serviceName }}</span>
+            {% empty %}—{% endfor %}
+          </td>
           <td>{{ inv.booking.customer.vehicleNumber }}</td>
           <td>₹{{ inv.taxAmount }}</td>
           <td>₹{{ inv.discountAmount }}</td>
@@ -210,4 +233,64 @@
   </div>
   {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  const totalEarnedEl = document.querySelector('.stat-card[style*="#16a34a"] .stat-value');
+
+  document.querySelectorAll('.complete-pending-btn').forEach(function (badge) {
+    badge.addEventListener('click', function () {
+      const payId  = this.dataset.payId;
+      const amount = parseFloat(this.dataset.amount);
+      const el     = this;
+
+      if (!confirm('Mark payment #PAY' + payId + ' as Completed?')) return;
+
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.6';
+
+      fetch("{% url 'provider_complete_payment' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ payment_id: payId }),
+      })
+      .then(r => r.json())
+      .then(function (data) {
+        if (data.success) {
+          el.className = 'badge completed';
+          el.removeAttribute('style');
+          el.innerHTML = 'Completed';
+
+          if (totalEarnedEl) {
+            const cur = parseFloat(totalEarnedEl.textContent.replace('₹','').replace(',','')) || 0;
+            totalEarnedEl.textContent = '₹' + (cur + amount).toFixed(2);
+          }
+        } else {
+          alert(data.error || 'Failed to update payment.');
+          el.style.pointerEvents = '';
+          el.style.opacity = '';
+        }
+      })
+      .catch(function () {
+        alert('Network error. Please try again.');
+        el.style.pointerEvents = '';
+        el.style.opacity = '';
+      });
+    });
+  });
+
+  function getCookie(name) {
+    let v = null;
+    document.cookie.split(';').forEach(function (c) {
+      const t = c.trim();
+      if (t.startsWith(name + '=')) v = decodeURIComponent(t.slice(name.length + 1));
+    });
+    return v;
+  }
+});
+</script>
 {% endblock %}

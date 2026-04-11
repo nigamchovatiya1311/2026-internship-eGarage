@@ -30,7 +30,7 @@
         <div class="header-top-inner">
           <div class="top-info">
             <span><i class="fas fa-map-marker-alt"></i> 42 Motor Avenue, Ahmedabad – 380015</span>
-            <span><i class="fas fa-clock"></i> Mon–Sat: 8AM – 8PM</span>
+            <span><i class="fas fa-clock"></i> Mon–Sun: 10AM – 10PM</span>
             <span><i class="fas fa-phone-alt"></i> +91 79900 01234</span>
           </div>
           <div class="top-right">
@@ -58,18 +58,18 @@
             <li><a href="#home" class="active">Home</a></li>
             <li><a href="#about">About</a></li>
             <li class="has-dropdown">
-              <a href="#services">Services <i class="fas fa-chevron-down"></i></a>
+              <a href="#services">Services</a>
+              {% comment %} <a href="#services">Services <i class="fas fa-chevron-down"></i></a>
               <ul class="dropdown">
-                <li><a href="#services"><i class="fas fa-oil-can"></i> Oil Change & Lube</a></li>
-                <li><a href="#services"><i class="fas fa-cogs"></i> Engine Repair</a></li>
-                <li><a href="#services"><i class="fas fa-circle-dot"></i> Wheel Alignment</a></li>
-                <li><a href="#services"><i class="fas fa-brake-warning"></i> Brake Service</a></li>
-                <li><a href="#services"><i class="fas fa-wind"></i> AC Service</a></li>
-                <li><a href="#services"><i class="fas fa-spray-can-sparkles"></i> Car Detailing</a></li>
-              </ul>
+                <li><a href="{% url 'login' %}"><i class="fas fa-wind"></i> AC Service & Gas Refill</a></li>
+                <li><a href="{% url 'login' %}"><i class="fas fa-car"></i> Basic Wash & Clean</a></li>
+                <li><a href="{% url 'login' %}"><i class="fas fa-battery-full"></i> Battery Check</a></li>
+                <li><a href="{% url 'login' %}"><i class="fas fa-circle-stop"></i> Brake Inspection</a></li>
+                <li><a href="{% url 'login' %}"><i class="fas fa-oil-can"></i> Oil Change</a></li>
+                <li><a href="{% url 'login' %}"><i class="fas fa-circle-dot"></i> Wheel Alignment</a></li>
+              </ul> {% endcomment %}
             </li>
-            <li><a href="#pricing">Pricing</a></li>
-            <li><a href="#testimonials">Reviews</a></li>
+            <li><a href="#why-us">Why Us</a></li>
             <li><a href="#contact">Contact</a></li>
           </ul>
           <a href="#booking" class="btn-primary nav-btn">Book Appointment <i class="fas fa-arrow-right"></i></a>
@@ -87,36 +87,31 @@
     <div class="hero-bg"></div>
     <div class="container">
       <div class="hero-content">
-        <div class="hero-badge"><i class="fas fa-award"></i> ISO Certified · Trusted Since 2012</div>
+        <div class="hero-badge"><i class="fas fa-award"></i> ISO Certified · Trusted</div>
         <h1 class="hero-title">
           Expert Auto Care<br/>
           You Can <span class="highlight">Trust</span><br/>
           Every Time
         </h1>
-        <p class="hero-desc">From oil changes to full engine overhauls — E-Garage delivers fast, honest, and professional car service backed by certified mechanics and genuine parts.</p>
+        <p class="hero-desc">From oil changes to full engine overhauls - E-Garage delivers fast, honest, and professional car & bike service backed by certified mechanics and genuine parts.</p>
         <div class="hero-cta">
           <a href="#booking" class="btn-primary large">Book a Service <i class="fas fa-calendar-check"></i></a>
           <a href="#services" class="btn-ghost large"><i class="fas fa-tools"></i> Our Services</a>
         </div>
         <div class="hero-stats">
           <div class="stat">
-            <strong>12K+</strong>
-            <span>Cars Serviced</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat">
             <strong>98%</strong>
             <span>Satisfied Clients</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
-            <strong>48</strong>
-            <span>Expert Mechanics</span>
+            <strong>2+</strong>
+            <span>Years of Experience</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
-            <strong>24/7</strong>
-            <span>Emergency Help</span>
+            <strong>4.9★</strong>
+            <span>Verified Rating</span>
           </div>
         </div>
       </div>
@@ -132,7 +127,7 @@
             <a href="#booking" class="btn-primary">Book Free Checkup <i class="fas fa-arrow-right"></i></a>
           </div>
           <div class="hero-float-card fc1">
-            <div class="fc-icon"><i class="fas fa-shield-check"></i></div>
+            <div class="fc-icon"><i class="fa-regular fa-handshake"></i></div>
             <div>
               <strong>30-Day Warranty</strong>
               <span>On all repairs</span>
@@ -145,13 +140,6 @@
               <span>500+ reviews</span>
             </div>
           </div>
-          <div class="hero-float-card fc3">
-            <div class="fc-icon"><i class="fas fa-truck-fast"></i></div>
-            <div>
-              <strong>Pick & Drop</strong>
-              <span>Free service</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -161,28 +149,6 @@
       </svg>
     </div>
   </section>
-
-  <!-- MARQUEE -->
-  <div class="marquee-strip">
-    <div class="marquee-track">
-      <span><i class="fas fa-wrench"></i> Engine Repair</span>
-      <span><i class="fas fa-circle-dot"></i> Wheel Alignment</span>
-      <span><i class="fas fa-oil-can"></i> Oil Change</span>
-      <span><i class="fas fa-brake-warning"></i> Brake Service</span>
-      <span><i class="fas fa-battery-full"></i> Battery Check</span>
-      <span><i class="fas fa-wind"></i> AC Service</span>
-      <span><i class="fas fa-spray-can-sparkles"></i> Car Detailing</span>
-      <span><i class="fas fa-car-side"></i> Suspension Repair</span>
-      <span><i class="fas fa-wrench"></i> Engine Repair</span>
-      <span><i class="fas fa-circle-dot"></i> Wheel Alignment</span>
-      <span><i class="fas fa-oil-can"></i> Oil Change</span>
-      <span><i class="fas fa-brake-warning"></i> Brake Service</span>
-      <span><i class="fas fa-battery-full"></i> Battery Check</span>
-      <span><i class="fas fa-wind"></i> AC Service</span>
-      <span><i class="fas fa-spray-can-sparkles"></i> Car Detailing</span>
-      <span><i class="fas fa-car-side"></i> Suspension Repair</span>
-    </div>
-  </div>
 
   <!-- ABOUT -->
   <section class="about section" id="about">
@@ -195,14 +161,8 @@
               <span>Our State-of-the-Art Workshop</span>
             </div>
             <div class="experience-badge">
-              <strong>12+</strong>
-              <span>Years of Excellence</span>
-            </div>
-          </div>
-          <div class="about-img-secondary">
-            <div class="img-placeholder sec-img">
-              <i class="fas fa-user-helmet-safety"></i>
-              <span>Certified Technicians</span>
+              <strong>2+</strong>
+              <span>Years of Experience</span>
             </div>
           </div>
           <div class="about-rating-box">
@@ -211,33 +171,33 @@
               <i class="fas fa-star"></i><i class="fas fa-star"></i>
             </div>
             <strong>4.9 Star Rating</strong>
-            <span>500+ verified customer reviews</span>
+            <span>Customer Verified</span>
           </div>
         </div>
         <div class="about-content">
           <div class="section-tag"><i class="fas fa-garage-open"></i> Who We Are</div>
-          <h2 class="section-title">Your Trusted <span>Auto Repair Partner</span> Since 2012</h2>
-          <p>E-Garage is a full-service automobile workshop staffed by skilled technicians, using genuine parts, transparent pricing, and modern diagnostic equipment. We treat every car like our own.</p>
+          <h2 class="section-title">Ahmedabad's Most <span>Trusted Auto Service</span></h2>
+          <p>E-Garage is a modern, full-service automobile workshop combining skilled technicians with a smart digital platform so you can book, track, and manage every service from your phone. No more waiting on calls or guessing when your car will be ready.</p>
           <div class="about-features">
             <div class="feature-row">
-              <div class="feature-icon"><i class="fas fa-user-tie"></i></div>
+              <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
               <div>
-                <h4>ASE-Certified Mechanics</h4>
-                <p>Every technician is certified and has 5+ years of hands-on experience with all major brands.</p>
+                <h4>Book & Track Online, Anytime</h4>
+                <p>Schedule a service in minutes and follow your car's progress live from inspection to final handover all from your dashboard.</p>
               </div>
             </div>
             <div class="feature-row">
               <div class="feature-icon"><i class="fas fa-receipt"></i></div>
               <div>
-                <h4>Transparent Quotes — No Hidden Charges</h4>
-                <p>You see and approve the full estimate before any work begins. Zero surprise bills.</p>
+                <h4>Transparent Quotes —> No Hidden Charges</h4>
+                <p>You see and approve the full estimate before any work begins. Every bill and part detail is saved permanently in your service history.</p>
               </div>
             </div>
             <div class="feature-row">
               <div class="feature-icon"><i class="fas fa-box-open"></i></div>
               <div>
                 <h4>Genuine Parts & 30-Day Warranty</h4>
-                <p>OEM-grade parts only. Every repair is backed by our 30-day service warranty.</p>
+                <p>OEM-grade parts only, with every repair backed by our 30-day service warranty and a certified mechanic's sign-off.</p>
               </div>
             </div>
           </div>
@@ -252,24 +212,24 @@
     <div class="container">
       <div class="counters-grid">
         <div class="counter-item">
-          <div class="counter-icon"><i class="fas fa-car"></i></div>
-          <strong class="count" data-target="12000">0</strong>
-          <span>Cars Serviced</span>
-        </div>
-        <div class="counter-item">
           <div class="counter-icon"><i class="fas fa-smile"></i></div>
-          <strong class="count" data-target="520">0</strong>
+          <strong class="count" data-target="100">0</strong>
           <span>Happy Customers</span>
         </div>
         <div class="counter-item">
-          <div class="counter-icon"><i class="fas fa-user-helmet-safety"></i></div>
-          <strong class="count" data-target="48">0</strong>
+          <div class="counter-icon"><i class="fa-solid fa-users"></i></div>
+          <strong class="count" data-target="12">0</strong>
           <span>Expert Technicians</span>
         </div>
         <div class="counter-item">
           <div class="counter-icon"><i class="fas fa-trophy"></i></div>
-          <strong class="count" data-target="30">0</strong>
+          <strong class="count" data-target="10">0</strong>
           <span>Industry Awards</span>
+        </div>
+        <div class="counter-item">
+          <div class="counter-icon"><i class="fas fa-calendar-check"></i></div>
+          <strong class="count" data-target="11">0</strong>
+          <span>Services Offered</span>
         </div>
       </div>
     </div>
@@ -281,71 +241,85 @@
       <div class="section-head">
         <div class="section-tag"><i class="fas fa-tools"></i> What We Offer</div>
         <h2 class="section-title">Complete Garage <span>Services</span> Under One Roof</h2>
-        <p>Professional auto care for every make and model — done right the first time, every time.</p>
+        <p>Professional auto care for every make and model done right the first time, every time.</p>
       </div>
       <div class="services-grid">
         <div class="service-card" style="--i:1">
-          <div class="service-icon"><i class="fas fa-oil-can"></i></div>
+          <div class="service-icon"><i class="fas fa-wind"></i></div>
           <div class="service-num">01</div>
-          <h3>Oil Change & Lube</h3>
-          <p>Synthetic & conventional oil changes with filter replacement and complete chassis lubrication for peak engine performance.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <h3>AC Service & Gas Refill</h3>
+          <p>AC compressor service, refrigerant refill, cabin filter replacement, and full climate control system diagnostics.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="service-card featured" style="--i:2">
-          <div class="service-icon"><i class="fas fa-cogs"></i></div>
+          <div class="service-icon"><i class="fas fa-car"></i></div>
           <div class="service-num">02</div>
-          <h3>Engine Repair & Overhaul</h3>
-          <p>From timing belts to full engine rebuilds — our specialists handle all petrol and diesel engines with precision.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <h3>Basic Wash & Clean</h3>
+          <p>Full exterior wash, tyre cleaning, interior wipe-down, and glass polish to keep your car fresh and presentable.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="service-card" style="--i:3">
-          <div class="service-icon"><i class="fas fa-circle-dot"></i></div>
+          <div class="service-icon"><i class="fas fa-battery-full"></i></div>
           <div class="service-num">03</div>
-          <h3>Wheel Alignment & Balancing</h3>
-          <p>Computerized 3D wheel alignment and dynamic balancing for even tyre wear and a perfectly stable ride.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <h3>Battery Check</h3>
+          <p>Battery health testing, voltage diagnostics, jump-start assistance, and replacement with manufacturer-warranted batteries.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="service-card" style="--i:4">
-          <div class="service-icon"><i class="fas fa-brake-warning"></i></div>
+          <div class="service-icon"><i class="fas fa-circle-stop"></i></div>
           <div class="service-num">04</div>
-          <h3>Brake Repair & Service</h3>
+          <h3>Brake Inspection & Service</h3>
           <p>Disc pad replacement, rotor resurfacing, brake fluid flush, and full brake system inspection for safe stopping every time.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="service-card" style="--i:5">
-          <div class="service-icon"><i class="fas fa-wind"></i></div>
+          <div class="service-icon"><i class="fas fa-cogs"></i></div>
           <div class="service-num">05</div>
-          <h3>AC Repair & Regas</h3>
-          <p>AC compressor service, refrigerant refill, cabin filter replacement, and complete climate control system diagnostics.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <h3>Carburettor Cleaning</h3>
+          <p>Thorough carburettor disassembly, ultrasonic cleaning, jet clearing, and reassembly to restore engine fuel efficiency.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="service-card" style="--i:6">
-          <div class="service-icon"><i class="fas fa-car-side"></i></div>
+          <div class="service-icon"><i class="fas fa-link"></i></div>
           <div class="service-num">06</div>
-          <h3>Suspension & Steering</h3>
-          <p>Shock absorbers, ball joints, tie rods, and steering rack repairs for a smooth, comfortable, and controlled drive.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <h3>Chain Cleaning & Lubrication</h3>
+          <p>Drive chain degreasing, precision lubrication, and tension adjustment to extend chain life and improve power delivery.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="service-card" style="--i:7">
-          <div class="service-icon"><i class="fas fa-battery-full"></i></div>
+          <div class="service-icon"><i class="fas fa-circle-dot"></i></div>
           <div class="service-num">07</div>
-          <h3>Battery Replacement</h3>
-          <p>Battery health testing, jump-start assistance, and replacement with branded batteries carrying full manufacturer warranty.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <h3>Clutch Plate Replacement</h3>
+          <p>Clutch plate, pressure plate, and release bearing replacement using OEM-grade parts for smooth, reliable gear changes.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="service-card" style="--i:8">
-          <div class="service-icon"><i class="fas fa-spray-can-sparkles"></i></div>
+          <div class="service-icon"><i class="fas fa-tools"></i></div>
           <div class="service-num">08</div>
-          <h3>Car Detailing & Polish</h3>
-          <p>Interior deep clean, machine polishing, ceramic coating, and paint protection to keep your car showroom-fresh all year.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <h3>Full General Service</h3>
+          <p>Comprehensive vehicle check covering engine oil, filters, fluids, belts, brakes, tyres, and electrical systems in one visit.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="service-card" style="--i:9">
-          <div class="service-icon"><i class="fas fa-microchip"></i></div>
+          <div class="service-icon"><i class="fas fa-spray-can-sparkles"></i></div>
           <div class="service-num">09</div>
-          <h3>Computer Diagnostics</h3>
-          <p>Advanced OBD-II scanning to read all fault codes and detect hidden problems before they become expensive breakdowns.</p>
-          <a href="#" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+          <h3>Interior Deep Cleaning</h3>
+          <p>Steam cleaning seats, dashboard detailing, carpet shampooing, and odour elimination for a like-new interior every time.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="service-card" style="--i:10">
+          <div class="service-icon"><i class="fas fa-oil-can"></i></div>
+          <div class="service-num">10</div>
+          <h3>Oil Change</h3>
+          <p>Synthetic and conventional oil changes with filter replacement and chassis lubrication for peak engine performance.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="service-card" style="--i:11">
+          <div class="service-icon"><i class="fas fa-arrows-spin"></i></div>
+          <div class="service-num">11</div>
+          <h3>Wheel Alignment</h3>
+          <p>Computerized 3D wheel alignment and dynamic balancing for even tyre wear and a perfectly stable, controlled ride.</p>
+          <a href="{% url 'login' %}" class="service-link">Book Now <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
     </div>
@@ -356,36 +330,102 @@
     <div class="container">
       <div class="section-head">
         <div class="section-tag"><i class="fas fa-list-check"></i> How It Works</div>
-        <h2 class="section-title">Getting Serviced <span>Is Simple & Easy</span></h2>
-        <p>We've made the entire process stress-free — from booking to getting your car back.</p>
+        <h2 class="section-title">Book, Track & Get Your <span>Car Serviced</span> Easily</h2>
+        <p>Our digital platform makes the entire service experience stress-free from booking to live tracking to final handover.</p>
       </div>
+
+      <!-- HOW IT WORKS VISUAL BANNER -->
+      <div class="hiw-visual-banner">
+        <div class="hiw-banner-inner">
+          <div class="hiw-banner-step">
+            <div class="hiw-banner-icon"><i class="fas fa-right-to-bracket"></i></div>
+            <span>Login & Book</span>
+          </div>
+          <div class="hiw-banner-arrow"><i class="fas fa-chevron-right"></i></div>
+          <div class="hiw-banner-step">
+            <div class="hiw-banner-icon"><i class="fas fa-car-on"></i></div>
+            <span>Drop Off</span>
+          </div>
+          <div class="hiw-banner-arrow"><i class="fas fa-chevron-right"></i></div>
+          <div class="hiw-banner-step">
+            <div class="hiw-banner-icon"><i class="fas fa-satellite-dish"></i></div>
+            <span>Live Track</span>
+          </div>
+          <div class="hiw-banner-arrow"><i class="fas fa-chevron-right"></i></div>
+          <div class="hiw-banner-step">
+            <div class="hiw-banner-icon"><i class="fas fa-car"></i></div>
+            <span>Collect & Drive</span>
+          </div>
+        </div>
+        <p class="hiw-banner-tagline"><i class="fas fa-bolt"></i> Fast · Transparent · Hassle-Free Service Every Time</p>
+      </div>
+
       <div class="process-steps">
         <div class="step" style="--i:1">
           <div class="step-num">01</div>
-          <div class="step-icon"><i class="fas fa-calendar-check"></i></div>
-          <h4>Book Online or Call</h4>
-          <p>Schedule your service in 2 minutes — choose your date, time, and service type easily.</p>
+          <div class="step-icon"><i class="fas fa-right-to-bracket"></i></div>
+          <h4>Login & Book</h4>
+          <p>Log in to your E-Garage account, choose your service, pick a date and time  done in under 2 minutes.</p>
         </div>
         <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
         <div class="step" style="--i:2">
           <div class="step-num">02</div>
-          <div class="step-icon"><i class="fas fa-truck-fast"></i></div>
-          <h4>Drop Off or We Pick Up</h4>
-          <p>Drive your car in or opt for our free doorstep pick-up — whichever is convenient for you.</p>
+          <div class="step-icon"><i class="fas fa-car-on"></i></div>
+          <h4>Drop Off Your Vehicle</h4>
+          <p>Bring your vehicle to our workshop at your booked time > our team is ready to receive it immediately.</p>
         </div>
         <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
         <div class="step" style="--i:3">
           <div class="step-num">03</div>
-          <div class="step-icon"><i class="fas fa-tools"></i></div>
-          <h4>Expert Service Done</h4>
-          <p>Certified mechanics service your car with genuine parts — you're updated at every stage.</p>
+          <div class="step-icon"><i class="fas fa-satellite-dish"></i></div>
+          <h4>Live Track Your Service</h4>
+          <p>Watch real-time progress on your dashboard inspection → work in progress → quality check → ready. No more guessing.</p>
         </div>
         <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
         <div class="step" style="--i:4">
           <div class="step-num">04</div>
           <div class="step-icon"><i class="fas fa-car"></i></div>
-          <h4>Drive Away Happy</h4>
-          <p>Your car is returned washed, inspected, and in perfect condition — full report included.</p>
+          <h4>Collect & Drive Away</h4>
+          <p>Pick up your car in perfect condition. Full service report, bill, and parts used are saved in your account history.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY CHOOSE US -->
+  <section class="why-us section" id="why-us">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-tag"><i class="fas fa-thumbs-up"></i> Why E-Garage</div>
+        <h2 class="section-title">Features Built For <span>Your Convenience</span></h2>
+        <p>E-Garage combines expert auto service with smart digital tools -> so managing your car is always simple and transparent.</p>
+      </div>
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-calendar-check"></i></div>
+          <h4>Easy Online Booking</h4>
+          <p>Book any service in under 2 minutes from your phone or computer -> choose your service, date, and time instantly.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-satellite-dish"></i></div>
+          <h4>Live Service Tracking</h4>
+          <p>Track your vehicle's service status in real-time -> from check-in to work in progress to quality check to ready-for-pickup.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-clock-rotate-left"></i></div>
+          <h4>Full Service History</h4>
+          <p>Every visit, every part replaced, every bill -> permanently recorded in your account so you never lose track of your car's care.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-certificate"></i></div>
+          <div class="why-cert-badge"><i class="fa-solid fa-check"></i> ASE Certified</div>
+          <h4>Certified Mechanics</h4>
+          <p>All our technicians are ASE-certified with 5+ years of real-world experience across all major car brands and models.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fas fa-shield-halved"></i></div>
+          <h4>30-Day Repair Warranty</h4>
+          <p>Every service and replaced part is backed by our 30-day warranty with full details logged in your service history.</p>
         </div>
       </div>
     </div>
@@ -394,360 +434,91 @@
   <!-- BOOKING -->
   <section class="booking-section" id="booking">
     <div class="container">
-      <div class="booking-grid">
-        <div class="booking-content">
-          <div class="section-tag white-tag"><i class="fas fa-calendar-check"></i> Easy Booking</div>
-          <h2 class="section-title light">Book Your <span class="orange-span">Appointment</span> In Minutes</h2>
-          <p>Fill the form or call us — our team confirms your booking instantly and takes care of the rest.</p>
-          <ul class="booking-perks">
-            <li><i class="fas fa-check-circle"></i> Free 20-point vehicle inspection included</li>
-            <li><i class="fas fa-check-circle"></i> Full quote before work begins — no surprises</li>
-            <li><i class="fas fa-check-circle"></i> Service completed in 24 hrs or same day</li>
-            <li><i class="fas fa-check-circle"></i> Free pick-up & drop-off service available</li>
-            <li><i class="fas fa-check-circle"></i> 30-day warranty on all repairs & parts</li>
-          </ul>
-          <div class="booking-contact">
-            <a href="tel:+917990001234" class="bc-item">
-              <div class="bc-icon"><i class="fas fa-phone-alt"></i></div>
-              <div>
-                <span>Call Us Directly</span>
-                <strong>+91 79900 01234</strong>
-              </div>
-            </a>
-            <a href="https://wa.me/917990001234" class="bc-item">
-              <div class="bc-icon green"><i class="fab fa-whatsapp"></i></div>
-              <div>
-                <span>Chat on WhatsApp</span>
-                <strong>Quick Reply</strong>
-              </div>
-            </a>
-          </div>
+      <div class="booking-simple">
+        <div class="booking-simple-icon"><i class="fas fa-calendar-check"></i></div>
+        <div class="section-tag white-tag"><i class="fas fa-calendar-check"></i> Easy Booking</div>
+        <h2 class="section-title light">Ready to Book Your <span class="orange-span">Service?</span></h2>
+        <p>Login to your E-Garage account to book a service, track your vehicle live, and view your complete service history -> all in one place.</p>
+        <div class="booking-simple-perks">
+          <span><i class="fas fa-check-circle"></i> Free 20-point inspection</span>
+          <span><i class="fas fa-check-circle"></i> Genuine OEM-grade parts</span>
+          <span><i class="fas fa-check-circle"></i> Live service tracking</span>
+          <span><i class="fas fa-check-circle"></i> 30-day repair warranty</span>
+          <span><i class="fas fa-check-circle"></i> Transparent billing</span>
         </div>
-        <div class="booking-form-wrap">
-          <form class="booking-form" id="bookingForm">
-            <div class="form-header">
-              <div class="form-header-icon"><i class="fas fa-calendar-alt"></i></div>
-              <h3>Book an Appointment</h3>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Your Name</label>
-                <input type="text" placeholder="Full name" required />
-              </div>
-              <div class="form-group">
-                <label>Phone Number</label>
-                <input type="tel" placeholder="+91 98765 43210" required />
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Car Brand</label>
-                <select>
-                  <option value="">Select Brand</option>
-                  <option>Maruti Suzuki</option>
-                  <option>Hyundai</option>
-                  <option>Tata Motors</option>
-                  <option>Honda</option>
-                  <option>Toyota</option>
-                  <option>Mahindra</option>
-                  <option>Kia</option>
-                  <option>Skoda</option>
-                  <option>Volkswagen</option>
-                  <option>Other</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Service Type</label>
-                <select>
-                  <option value="">Select Service</option>
-                  <option>Oil Change & Lube</option>
-                  <option>Engine Repair</option>
-                  <option>Wheel Alignment</option>
-                  <option>Brake Service</option>
-                  <option>AC Service</option>
-                  <option>Suspension Repair</option>
-                  <option>Battery Replacement</option>
-                  <option>Car Detailing</option>
-                  <option>Computer Diagnostics</option>
-                  <option>General Checkup</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Preferred Date</label>
-                <input type="date" required />
-              </div>
-              <div class="form-group">
-                <label>Preferred Time</label>
-                <select>
-                  <option value="">Select Time</option>
-                  <option>8:00 AM – 10:00 AM</option>
-                  <option>10:00 AM – 12:00 PM</option>
-                  <option>12:00 PM – 2:00 PM</option>
-                  <option>2:00 PM – 4:00 PM</option>
-                  <option>4:00 PM – 6:00 PM</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group full">
-              <label>Describe the Issue (Optional)</label>
-              <textarea placeholder="Tell us what's wrong or any special requests..." rows="3"></textarea>
-            </div>
-            <button type="submit" class="btn-primary full-w">Confirm Booking <i class="fas fa-arrow-right"></i></button>
-            <p class="form-note"><i class="fas fa-lock"></i> Your information is 100% secure and private.</p>
-          </form>
-        </div>
+        <a href="{% url 'login' %}" class="btn-white large">Login to Book <i class="fas fa-arrow-right"></i></a>
       </div>
     </div>
   </section>
 
-  <!-- WHY CHOOSE US -->
-  <section class="why-us section">
+  <!-- VEHICLE TIPS -->
+  <section class="blog section" id="tips">
     <div class="container">
       <div class="section-head">
-        <div class="section-tag"><i class="fas fa-thumbs-up"></i> Why E-Garage</div>
-        <h2 class="section-title">Why Car Owners <span>Choose Us</span> Again & Again</h2>
-        <p>We've built a reputation on honesty, expertise, and genuine care for every vehicle we touch.</p>
+        <div class="section-tag"><i class="fas fa-lightbulb"></i> Vehicle Tips</div>
+        <h2 class="section-title">Important Tips to Keep Your <span>Vehicle Running Freely</span></h2>
+        <p>Simple habits every car owner should follow & catch problems early and avoid costly breakdowns.</p>
       </div>
-      <div class="why-grid">
-        <div class="why-card">
-          <div class="why-icon"><i class="fas fa-user-helmet-safety"></i></div>
-          <h4>Certified Mechanics</h4>
-          <p>All our technicians are ASE-certified with 5+ years of real-world auto repair experience across all brands.</p>
-        </div>
-        <div class="why-card">
-          <div class="why-icon"><i class="fas fa-receipt"></i></div>
-          <h4>No Hidden Charges</h4>
-          <p>Full written estimate before any work starts. You only pay what you approved — always honest pricing.</p>
-        </div>
-        <div class="why-card">
-          <div class="why-icon"><i class="fas fa-shield-halved"></i></div>
-          <h4>30-Day Repair Warranty</h4>
-          <p>Every service and replaced part is backed by our 30-day warranty for your complete peace of mind.</p>
-        </div>
-        <div class="why-card">
-          <div class="why-icon"><i class="fas fa-headset"></i></div>
-          <h4>24/7 Emergency Helpline</h4>
-          <p>Broken down at night? Call our hotline and we'll dispatch roadside assistance to your location fast.</p>
-        </div>
-        <div class="why-card">
-          <div class="why-icon"><i class="fas fa-box-open"></i></div>
-          <h4>100% Genuine Parts</h4>
-          <p>We only use OEM-grade manufacturer-approved parts. No cheap knockoffs, ever — quality you can trust.</p>
-        </div>
-        <div class="why-card">
-          <div class="why-icon"><i class="fas fa-truck-fast"></i></div>
-          <h4>Free Pick-Up & Drop-Off</h4>
-          <p>We collect your car from your home or office and bring it back — completely hassle-free for you.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- PRICING -->
-  <section class="pricing section" id="pricing">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag"><i class="fas fa-tags"></i> Service Packages</div>
-        <h2 class="section-title">Transparent <span>Pricing Plans</span> For Every Need</h2>
-        <p>Simple packages with no hidden extras — pick the plan that suits your car and budget.</p>
-      </div>
-      <div class="pricing-grid">
-        <div class="pricing-card">
-          <div class="plan-icon orange"><i class="fas fa-leaf"></i></div>
-          <div class="plan-badge">Basic Care</div>
-          <div class="plan-price">
-            <span class="currency">₹</span><strong>1,999</strong><span class="per">/visit</span>
-          </div>
-          <p class="plan-desc">Ideal for routine maintenance and quick health checks.</p>
-          <ul class="plan-features">
-            <li><i class="fas fa-check"></i> Engine Oil & Filter Change</li>
-            <li><i class="fas fa-check"></i> Tyre Pressure Check</li>
-            <li><i class="fas fa-check"></i> Battery Voltage Test</li>
-            <li><i class="fas fa-check"></i> Exterior Wash & Dry</li>
-            <li><i class="fas fa-check"></i> 10-Point Safety Inspection</li>
-            <li class="disabled"><i class="fas fa-times"></i> Wheel Alignment</li>
-            <li class="disabled"><i class="fas fa-times"></i> AC Gas Check</li>
-          </ul>
-          <a href="#booking" class="btn-plan">Book Now <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div class="pricing-card popular">
-          <div class="popular-label"><i class="fas fa-fire"></i> Most Popular</div>
-          <div class="plan-icon blue"><i class="fas fa-medal"></i></div>
-          <div class="plan-badge">Pro Service</div>
-          <div class="plan-price">
-            <span class="currency">₹</span><strong>4,999</strong><span class="per">/visit</span>
-          </div>
-          <p class="plan-desc">Comprehensive care for regular drivers who want the best.</p>
-          <ul class="plan-features">
-            <li><i class="fas fa-check"></i> All Basic Care Included</li>
-            <li><i class="fas fa-check"></i> 3D Wheel Alignment & Balancing</li>
-            <li><i class="fas fa-check"></i> Brake Inspection & Adjustment</li>
-            <li><i class="fas fa-check"></i> AC Gas Check & Top-up</li>
-            <li><i class="fas fa-check"></i> Interior Vacuum & Clean</li>
-            <li><i class="fas fa-check"></i> Computer Diagnostic Scan</li>
-            <li><i class="fas fa-check"></i> Free Pick-Up & Drop-Off</li>
-          </ul>
-          <a href="#booking" class="btn-primary">Book Now <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div class="pricing-card">
-          <div class="plan-icon purple"><i class="fas fa-crown"></i></div>
-          <div class="plan-badge">Elite Package</div>
-          <div class="plan-price">
-            <span class="currency">₹</span><strong>9,999</strong><span class="per">/visit</span>
-          </div>
-          <p class="plan-desc">Premium full-service treatment — give your car the best.</p>
-          <ul class="plan-features">
-            <li><i class="fas fa-check"></i> Everything in Pro Service</li>
-            <li><i class="fas fa-check"></i> Full Engine Tune-Up</li>
-            <li><i class="fas fa-check"></i> Suspension & Steering Check</li>
-            <li><i class="fas fa-check"></i> Full Interior Deep Clean</li>
-            <li><i class="fas fa-check"></i> Machine Polish + Paint Wax</li>
-            <li><i class="fas fa-check"></i> 30-Day Service Warranty</li>
-            <li><i class="fas fa-check"></i> Priority 24/7 Support</li>
-          </ul>
-          <a href="#booking" class="btn-plan">Book Now <i class="fas fa-arrow-right"></i></a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- TESTIMONIALS -->
-  <section class="testimonials section" id="testimonials">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag"><i class="fas fa-quote-left"></i> Customer Reviews</div>
-        <h2 class="section-title">What Our <span>Happy Customers</span> Have to Say</h2>
-        <p>Real experiences from real people who trust E-Garage with their vehicles.</p>
-      </div>
-      <div class="testimonials-slider">
-        <div class="testi-track" id="testiTrack">
-          <div class="testi-card">
-            <div class="testi-top">
-              <div class="testi-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-              <span class="testi-service">Engine Service</span>
-            </div>
-            <p>"E-Garage diagnosed my car's noise in 30 minutes and fixed it the same day. The pricing was transparent and fair. Absolutely professional team — I won't go anywhere else!"</p>
-            <div class="testi-author">
-              <div class="author-avatar">RM</div>
-              <div>
-                <strong>Ravi Mehta</strong>
-                <span>Hyundai i20 · Ahmedabad</span>
-              </div>
-            </div>
-          </div>
-          <div class="testi-card">
-            <div class="testi-top">
-              <div class="testi-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-              <span class="testi-service">AC + Brake Service</span>
-            </div>
-            <p>"They picked up my car from office, did AC and brake service, and dropped it by evening. WhatsApp updates throughout! This is how car service should always work."</p>
-            <div class="testi-author">
-              <div class="author-avatar">PS</div>
-              <div>
-                <strong>Priya Shah</strong>
-                <span>Maruti Swift · Surat</span>
-              </div>
-            </div>
-          </div>
-          <div class="testi-card">
-            <div class="testi-top">
-              <div class="testi-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
-              <span class="testi-service">Pro Service Package</span>
-            </div>
-            <p>"Pro Service was worth every rupee. The 3D wheel alignment alone transformed my car's drive. Genuine parts, no upselling, and the team actually explains what they do."</p>
-            <div class="testi-author">
-              <div class="author-avatar">AP</div>
-              <div>
-                <strong>Arjun Patel</strong>
-                <span>Tata Nexon · Baroda</span>
-              </div>
-            </div>
-          </div>
-          <div class="testi-card">
-            <div class="testi-top">
-              <div class="testi-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-              <span class="testi-service">Car Detailing</span>
-            </div>
-            <p>"Got detailing done before selling my car. The result was stunning — actual showroom finish. I got ₹30,000 more than I expected. Best investment for your car!"</p>
-            <div class="testi-author">
-              <div class="author-avatar">NV</div>
-              <div>
-                <strong>Nisha Verma</strong>
-                <span>Honda City · Rajkot</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="slider-controls">
-        <button class="slider-btn" id="prevBtn"><i class="fas fa-arrow-left"></i></button>
-        <div class="slider-dots" id="sliderDots"></div>
-        <button class="slider-btn" id="nextBtn"><i class="fas fa-arrow-right"></i></button>
-      </div>
-    </div>
-  </section>
-
-  <!-- BLOG -->
-  <section class="blog section">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag"><i class="fas fa-newspaper"></i> Auto Tips</div>
-        <h2 class="section-title">Garage <span>Tips & Advice</span> From Our Experts</h2>
-        <p>Practical car care knowledge from certified mechanics — keep your vehicle running perfectly.</p>
-      </div>
-      <div class="blog-grid">
+      <div class="blog-grid blog-grid-tips">
         <div class="blog-card large">
           <div class="blog-img-wrap">
-            <div class="blog-img-placeholder large-ph"><i class="fas fa-cogs"></i></div>
-            <div class="blog-cat">Engine Tips</div>
+            <div class="blog-img-placeholder large-ph tip-orange"><i class="fas fa-oil-can"></i></div>
+            <div class="blog-cat">Engine Care</div>
           </div>
           <div class="blog-body">
-            <div class="blog-meta"><i class="fas fa-calendar"></i> Feb 20, 2025 &nbsp;|&nbsp; <i class="fas fa-user"></i> E-Garage Team</div>
-            <h3>5 Warning Signs Your Engine Needs Immediate Attention</h3>
-            <p>Ignoring these early symptoms can turn a small repair into a ₹50,000 breakdown. Here's what to watch for in everyday driving...</p>
-            <a href="#" class="blog-link">Read Full Article <i class="fas fa-arrow-right"></i></a>
+            <div class="blog-meta"><i class="fas fa-wrench"></i> Maintenance Tip · Must-Know</div>
+            <h3>Check Engine Oil Level Every 1,000 km</h3>
+            <p>Low engine oil is the #1 cause of engine damage. Pull out the dipstick every 1,000 km — oil should be between the MIN and MAX marks and appear amber, not black. Dark, gritty oil means it's overdue for a change.</p>
+            <a href="{% url 'login' %}" class="blog-link">Book an Oil Change <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
         <div class="blog-card">
           <div class="blog-img-wrap">
-            <div class="blog-img-placeholder sm-ph"><i class="fas fa-circle-dot"></i></div>
+            <div class="blog-img-placeholder sm-ph tip-blue"><i class="fas fa-circle-dot"></i></div>
             <div class="blog-cat">Tyres</div>
           </div>
           <div class="blog-body">
-            <div class="blog-meta"><i class="fas fa-calendar"></i> Jan 15, 2025</div>
-            <h3>When to Replace Your Tyres: A Complete Driver's Guide</h3>
-            <a href="#" class="blog-link">Read Article <i class="fas fa-arrow-right"></i></a>
+            <div class="blog-meta"><i class="fas fa-calendar-check"></i> Monthly Check</div>
+            <h3>Tyre Pressure — Check Every Month</h3>
+            <p>Under-inflated tyres reduce fuel efficiency by up to 3%, wear unevenly, and can blow out at high speed. Check pressure monthly when cold and keep it at the manufacturer's recommended PSI.</p>
+            <a href="{% url 'login' %}" class="blog-link">Book Wheel Check <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
         <div class="blog-card">
           <div class="blog-img-wrap">
-            <div class="blog-img-placeholder sm-ph"><i class="fas fa-oil-can"></i></div>
-            <div class="blog-cat">Maintenance</div>
+            <div class="blog-img-placeholder sm-ph tip-amber"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="blog-cat">Warning Signs</div>
           </div>
           <div class="blog-body">
-            <div class="blog-meta"><i class="fas fa-calendar"></i> Jan 3, 2025</div>
-            <h3>How Often Should You Really Change Your Engine Oil?</h3>
-            <a href="#" class="blog-link">Read Article <i class="fas fa-arrow-right"></i></a>
+            <div class="blog-meta"><i class="fas fa-bolt"></i> Act Fast</div>
+            <h3>Never Ignore the Check Engine Light</h3>
+            <p>A glowing check engine light signals a live fault in your vehicle's system. Even if the car seems fine, ignoring it can turn a ₹500 fix into a ₹50,000 repair. Get a diagnostic scan within 48 hours.</p>
+            <a href="{% url 'login' %}" class="blog-link">Book Diagnostics <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA -->
-  <section class="cta-banner">
-    <div class="container">
-      <div class="cta-inner">
-        <div class="cta-icon"><i class="fas fa-phone-volume"></i></div>
-        <div class="cta-text">
-          <h2>Roadside Breakdown? <span>We Respond in 30 Minutes!</span></h2>
-          <p>Our 24/7 emergency team is always ready — just one call away from getting you back on the road.</p>
+        <div class="blog-card">
+          <div class="blog-img-wrap">
+            <div class="blog-img-placeholder sm-ph tip-red"><i class="fas fa-circle-stop"></i></div>
+            <div class="blog-cat">Brakes</div>
+          </div>
+          <div class="blog-body">
+            <div class="blog-meta"><i class="fas fa-shield-halved"></i> Safety First</div>
+            <h3>Squeaking Brakes? Don't Wait</h3>
+            <p>A squealing or grinding noise when braking means your brake pads are worn. Driving on bare metal destroys your rotors and risks brake failure. Replace pads immediately when you hear that sound.</p>
+            <a href="{% url 'login' %}" class="blog-link">Book Brake Service <i class="fas fa-arrow-right"></i></a>
+          </div>
         </div>
-        <div class="cta-actions">
-          <a href="tel:+917990001234" class="btn-white"><i class="fas fa-phone-alt"></i> +91 79900 01234</a>
-          <a href="https://wa.me/917990001234" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp Us</a>
+        <div class="blog-card">
+          <div class="blog-img-wrap">
+            <div class="blog-img-placeholder sm-ph tip-teal"><i class="fas fa-wind"></i></div>
+            <div class="blog-cat">AC Health</div>
+          </div>
+          <div class="blog-body">
+            <div class="blog-meta"><i class="fas fa-sun"></i> Seasonal Tip</div>
+            <h3>Service Your AC Before Summer</h3>
+            <p>Weak cooling usually means low refrigerant or a clogged cabin filter. Service your AC before April — waiting until peak summer means longer queues, higher heat, and more strain on the compressor.</p>
+            <a href="{% url 'login' %}" class="blog-link">Book AC Service <i class="fas fa-arrow-right"></i></a>
+          </div>
         </div>
       </div>
     </div>
@@ -759,45 +530,39 @@
       <div class="section-head">
         <div class="section-tag"><i class="fas fa-location-dot"></i> Find Us</div>
         <h2 class="section-title">Visit Our <span>Workshop</span></h2>
-        <p>Come see us in person — or let us come to you with our free pick-up service.</p>
+        <p>Walk in any time during working hours or book online and we'll have everything ready for you.</p>
       </div>
-      <div class="contact-grid">
-        <div class="contact-info">
-          <div class="contact-card">
-            <div class="cc-icon"><i class="fas fa-map-marker-alt"></i></div>
-            <div>
-              <h4>Workshop Address</h4>
-              <p>42 Motor Avenue, Near Ring Road,<br/>Ahmedabad, Gujarat – 380015</p>
-            </div>
-          </div>
-          <div class="contact-card">
-            <div class="cc-icon"><i class="fas fa-phone-alt"></i></div>
-            <div>
-              <h4>Phone Numbers</h4>
-              <p>+91 79900 01234 (Main Line)<br/>+91 98765 43210 (Emergency)</p>
-            </div>
-          </div>
-          <div class="contact-card">
-            <div class="cc-icon"><i class="fas fa-envelope"></i></div>
-            <div>
-              <h4>Email Address</h4>
-              <p>hello@egarage.in<br/>support@egarage.in</p>
-            </div>
-          </div>
-          <div class="contact-card">
-            <div class="cc-icon"><i class="fas fa-clock"></i></div>
-            <div>
-              <h4>Working Hours</h4>
-              <p>Monday – Saturday: 8:00 AM – 8:00 PM<br/>Sunday: 9:00 AM – 5:00 PM</p>
-            </div>
+      <div class="contact-info contact-info-row">
+        <div class="contact-card contact-card-v2">
+          <div class="cc-icon cc-icon-address"><i class="fas fa-map-marker-alt"></i></div>
+          <div class="cc-body">
+            <h4><i class="fas fa-map-marker-alt cc-inline-icon"></i> Workshop Address</h4>
+            <p>42 Motor Avenue, Near Ring Road,<br/>Ahmedabad, Gujarat – 380015</p>
+            <a href="https://maps.google.com" target="_blank" class="cc-link">Get Directions <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
-        <div class="map-placeholder">
-          <div class="map-inner">
-            <div class="map-icon-wrap"><i class="fas fa-map-marked-alt"></i></div>
-            <h4>E-Garage Workshop</h4>
-            <p>42 Motor Avenue, Ahmedabad – 380015</p>
-            <a href="https://maps.google.com" target="_blank" class="btn-primary sm">Get Directions <i class="fas fa-directions"></i></a>
+        <div class="contact-card contact-card-v2">
+          <div class="cc-icon cc-icon-phone"><i class="fas fa-phone-alt"></i></div>
+          <div class="cc-body">
+            <h4><i class="fas fa-phone-alt cc-inline-icon"></i> Phone Numbers</h4>
+            <p>+91 79900 01234 (Main Line)<br/>+91 98765 43210 (Enquiry)</p>
+            <a href="tel:+917990001234" class="cc-link">Call Now <i class="fas fa-arrow-right"></i></a>
+          </div>
+        </div>
+        <div class="contact-card contact-card-v2">
+          <div class="cc-icon cc-icon-email"><i class="fas fa-envelope"></i></div>
+          <div class="cc-body">
+            <h4><i class="fas fa-envelope cc-inline-icon"></i> Email Address</h4>
+            <p>egaragesolutionhub@gmail.com<br/>support@egarage.in</p>
+            <a href="mailto:egaragesolutionhub@gmail.com" class="cc-link">Send Email <i class="fas fa-arrow-right"></i></a>
+          </div>
+        </div>
+        <div class="contact-card contact-card-v2">
+          <div class="cc-icon cc-icon-clock"><i class="fas fa-clock"></i></div>
+          <div class="cc-body">
+            <h4><i class="fas fa-clock cc-inline-icon"></i> Working Hours</h4>
+            <p>Monday – Sunday: <br> 10:00 AM – 10:00 PM</p>
+            <a href="#booking" class="cc-link">Book Appointment <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
       </div>
@@ -808,7 +573,7 @@
   <footer class="footer">
     <div class="footer-top">
       <div class="container">
-        <div class="footer-grid">
+        <div class="footer-grid footer-grid-slim">
           <div class="footer-brand">
             <a href="#" class="logo footer-logo">
               <div class="logo-icon"><i class="fas fa-wrench"></i></div>
@@ -817,7 +582,7 @@
                 <span class="logo-sub">Auto Service Center</span>
               </div>
             </a>
-            <p>Your trusted neighbourhood garage — expert, honest, and affordable auto service since 2012. We care for your car like our own.</p>
+            <p>Your trusted neighbourhood garage -> expert, honest, and affordable auto service. We care for your car & bike like our own.</p>
             <div class="footer-socials">
               <a href="#"><i class="fab fa-facebook-f"></i></a>
               <a href="#"><i class="fab fa-instagram"></i></a>
@@ -831,28 +596,19 @@
               <li><a href="#home"><i class="fas fa-chevron-right"></i> Home</a></li>
               <li><a href="#about"><i class="fas fa-chevron-right"></i> About Us</a></li>
               <li><a href="#services"><i class="fas fa-chevron-right"></i> Services</a></li>
-              <li><a href="#pricing"><i class="fas fa-chevron-right"></i> Pricing</a></li>
+              <li><a href="#why-us"><i class="fas fa-chevron-right"></i> Why E-Garage</a></li>
               <li><a href="#contact"><i class="fas fa-chevron-right"></i> Contact</a></li>
+              {% comment %} <li><a href="{% url 'login' %}"><i class="fas fa-chevron-right"></i> Login / Book</a></li> {% endcomment %}
             </ul>
           </div>
           <div class="footer-col">
-            <h4>Our Services</h4>
-            <ul>
-              <li><a href="#"><i class="fas fa-chevron-right"></i> Oil Change & Lube</a></li>
-              <li><a href="#"><i class="fas fa-chevron-right"></i> Engine Repair</a></li>
-              <li><a href="#"><i class="fas fa-chevron-right"></i> Wheel Alignment</a></li>
-              <li><a href="#"><i class="fas fa-chevron-right"></i> Brake Service</a></li>
-              <li><a href="#"><i class="fas fa-chevron-right"></i> AC Service</a></li>
-              <li><a href="#"><i class="fas fa-chevron-right"></i> Car Detailing</a></li>
+            <h4>Contact Us</h4>
+            <ul class="footer-contact-list">
+              <li><i class="fas fa-map-marker-alt"></i> 42 Motor Avenue, Ahmedabad – 380015</li>
+              <li><i class="fas fa-phone-alt"></i> +91 79900 01234</li>
+              <li><i class="fas fa-envelope"></i> egaragesolutionhub@gmail.com</li>
+              <li><i class="fas fa-clock"></i> Mon–Sun: 10AM – 10PM</li>
             </ul>
-          </div>
-          <div class="footer-col">
-            <h4>Stay Updated</h4>
-            <p>Get car care tips and exclusive workshop offers in your inbox.</p>
-            <form class="newsletter-form">
-              <input type="email" placeholder="Enter your email" />
-              <button type="submit"><i class="fas fa-paper-plane"></i></button>
-            </form>
             <div class="footer-badges">
               <span><i class="fas fa-certificate"></i> ISO Certified</span>
               <span><i class="fas fa-medal"></i> Award Winning</span>
@@ -907,34 +663,8 @@
       });
     }, {threshold:0.5});
     counters.forEach(c => co.observe(c));
-    const track = document.getElementById('testiTrack');
-    const cards = track.querySelectorAll('.testi-card');
-    const dotsWrap = document.getElementById('sliderDots');
-    let cur = 0;
-    let perV = window.innerWidth < 768 ? 1 : window.innerWidth < 1024 ? 2 : 3;
-    cards.forEach((_, i) => {
-      const d = document.createElement('span');
-      d.className = 'dot' + (i===0?' active':'');
-      d.addEventListener('click', () => goTo(i));
-      dotsWrap.appendChild(d);
-    });
-    function goTo(n) {
-      cur = Math.max(0, Math.min(n, cards.length - perV));
-      track.style.transform = `translateX(-${cur*(cards[0].offsetWidth+24)}px)`;
-      document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===cur));
-    }
-    document.getElementById('prevBtn').addEventListener('click', () => goTo(cur-1));
-    document.getElementById('nextBtn').addEventListener('click', () => goTo(cur+1));
-    setInterval(() => goTo(cur+1 > cards.length-perV ? 0 : cur+1), 4500);
     document.getElementById('backTop').addEventListener('click', () => window.scrollTo({top:0,behavior:'smooth'}));
-    document.getElementById('bookingForm').addEventListener('submit', e => {
-      e.preventDefault();
-      const btn = e.target.querySelector('button[type=submit]');
-      btn.innerHTML = '<i class="fas fa-check-circle"></i> Booking Confirmed! We\'ll contact you soon.';
-      btn.style.background = '#16a34a'; btn.style.borderColor = '#16a34a';
-      setTimeout(() => { btn.innerHTML = 'Confirm Booking <i class="fas fa-arrow-right"></i>'; btn.style.background=''; btn.style.borderColor=''; e.target.reset(); }, 4000);
-    });
-    const revs = document.querySelectorAll('.service-card,.why-card,.blog-card,.pricing-card,.contact-card,.step');
+    const revs = document.querySelectorAll('.service-card,.why-card,.blog-card,.contact-card,.step');
     const ro = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting){e.target.classList.add('animate-in');ro.unobserve(e.target);} }), {threshold:0.1});
     revs.forEach(r => ro.observe(r));
   </script>

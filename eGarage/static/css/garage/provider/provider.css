@@ -153,6 +153,10 @@ input,select,textarea{font-family:inherit}
 .badge.in_progress{background:#eff6ff;color:#1d4ed8}
 .badge.completed,.badge.success{background:#f0fdf4;color:var(--success)}
 .badge.cancelled,.badge.danger{background:#fef2f2;color:var(--danger)}
+/* ── VEHICLE TYPE BADGES ── */
+.badge.vtype-car{background:#dbeafe!important;color:#1d4ed8!important}
+.badge.vtype-bike{background:#fef3c7!important;color:#b45309!important}
+.badge.vtype-all{background:#f3f4f6!important;color:#374151!important}
 .method-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:0.7rem;font-weight:800}
 .method-tag.cash{background:#f0fdf4;color:#16a34a}
 .method-tag.card{background:#eff6ff;color:#1d4ed8}
@@ -231,6 +235,7 @@ input,select,textarea{font-family:inherit}
 .form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.9rem;color:var(--text);outline:none;transition:var(--transition);background:#f8fafc;font-family:inherit;resize:vertical}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--primary);background:var(--white);box-shadow:0 0 0 3px rgba(232,86,10,0.1)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-row.three-col{grid-template-columns:1fr 1fr 1fr}
 .form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
 .summary-rows .sum-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.82rem}
 .summary-rows .sum-row span:first-child{color:var(--text-light);font-weight:700;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.3px}

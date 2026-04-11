@@ -142,10 +142,12 @@
           </tr>
         </thead>
         <tbody>
+          {% for svc in invoice.booking.services.all %}
           <tr>
-            <td>{{ invoice.booking.service.serviceName }}</td>
-            <td>₹{{ invoice.booking.service.servicePrice }}</td>
+            <td>{{ svc.serviceName }}</td>
+            <td>₹{{ svc.servicePrice }}</td>
           </tr>
+          {% endfor %}
           <tr>
             <td style="color:var(--text-light,#6b7280);">GST / Tax</td>
             <td>₹{{ invoice.taxAmount }}</td>

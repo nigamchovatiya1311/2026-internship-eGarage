@@ -174,20 +174,22 @@
           </tr>
         </thead>
         <tbody>
+          {% for svc in invoice.booking.services.all %}
           <tr>
-            <td>1</td>
+            <td style="color:#9ca3af;">{{ forloop.counter }}</td>
             <td>
-              <div class="svc-name">{{ invoice.booking.service.serviceName }}</div>
+              <div class="svc-name">{{ svc.serviceName }}</div>
               <div class="svc-sub">
                 {{ invoice.booking.provider.garageName }}
-                {% if invoice.booking.service.estimatedDuration %}
-                  &middot; {{ invoice.booking.service.estimatedDuration }} min
+                {% if svc.estimatedDuration %}
+                  &middot; {{ svc.estimatedDuration }} min
                 {% endif %}
               </div>
             </td>
             <td style="color:#9ca3af;">998714</td>
-            <td>₹{{ service_price|floatformat:2 }}</td>
+            <td>₹{{ svc.servicePrice|floatformat:2 }}</td>
           </tr>
+          {% endfor %}
         </tbody>
       </table>
 
@@ -196,7 +198,7 @@
         <div class="totals-box">
           <div class="tot-row">
             <span>Subtotal</span>
-            <span>₹{{ base_amt|floatformat:2 }}</span>
+            <span>₹{{ invoice.booking.total_price|floatformat:2 }}</span>
           </div>
           {% if tax_amt %}
           <div class="tot-row">

@@ -8,28 +8,42 @@
     <h1 class="section-title">My Services</h1>
     <p class="section-sub">Manage services offered by {{ provider.garageName }}.</p>
   </div>
-  <button class="btn-primary" onclick="document.getElementById('addSvcForm').classList.toggle('open')">
+  <button class="btn-primary" onclick="openAddForm()">
     <i class="fas fa-plus"></i> Add Service
   </button>
 </div>
 
-<!-- ADD SERVICE FORM -->
+<!-- ADD / EDIT SERVICE FORM -->
 <div class="add-service-form" id="addSvcForm">
-  <h3>Add New Service</h3>
+  <h3 id="formTitle">Add New Service</h3>
   <form method="POST" action="{% url 'provider_service_save' %}">
     {% csrf_token %}
-    <input type="hidden" name="service_id" value=""/>
+    <input type="hidden" name="service_id" id="svcId" value=""/>
     <div class="form-row">
-      <div class="form-group"><label>Service Name</label><input type="text" name="name" placeholder="e.g. Oil Change" required/></div>
-      <div class="form-group"><label>Price (₹)</label><input type="number" name="price" placeholder="1999" required/></div>
+      <div class="form-group"><label>Service Name</label><input type="text" name="name" id="svcName" placeholder="e.g. Oil Change" required/></div>
+      <div class="form-group"><label>Price (₹)</label><input type="number" name="price" id="svcPrice" placeholder="1999" required/></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Duration (minutes)</label><input type="number" name="duration" placeholder="45"/></div>
-      <div class="form-group"><label>Availability</label><select name="available"><option value="true">Available</option><option value="false">Unavailable</option></select></div>
+    <div class="form-row three-col">
+      <div class="form-group"><label>Duration (minutes)</label><input type="number" name="duration" id="svcDuration" placeholder="45"/></div>
+      <div class="form-group">
+        <label>Vehicle Type</label>
+        <select name="vehicle_type" id="svcVehicleType">
+          <option value="all">All Vehicles</option>
+          <option value="car">Car</option>
+          <option value="bike">Bike / Two-Wheeler</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Availability</label>
+        <select name="available" id="svcAvailable">
+          <option value="true">Available</option>
+          <option value="false">Unavailable</option>
+        </select>
+      </div>
     </div>
-    <div class="form-group"><label>Description</label><textarea name="description" rows="2" placeholder="Short description..."></textarea></div>
+    <div class="form-group"><label>Description</label><textarea name="description" id="svcDesc" rows="2" placeholder="Short description..."></textarea></div>
     <div class="form-actions">
-      <button type="button" class="btn-secondary" onclick="document.getElementById('addSvcForm').classList.remove('open')">Cancel</button>
+      <button type="button" class="btn-secondary" onclick="closeForm()">Cancel</button>
       <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Service</button>
     </div>
   </form>
@@ -42,7 +56,18 @@
     <div class="svc-card-top">
       <div class="svc-icon"><i class="fas fa-wrench"></i></div>
       <div class="svc-actions">
-        <button class="act-btn edit" onclick="editService('{{ svc.serviceId }}','{{ svc.serviceName|escapejs }}','{{ svc.serviceDescription|escapejs }}','{{ svc.servicePrice }}','{{ svc.estimatedDuration }}')" title="Edit"><i class="fas fa-pen"></i></button>
+        <button class="act-btn edit"
+          onclick="editService(
+            '{{ svc.serviceId }}',
+            '{{ svc.serviceName|escapejs }}',
+            '{{ svc.serviceDescription|escapejs }}',
+            '{{ svc.servicePrice }}',
+            '{{ svc.estimatedDuration }}',
+            '{{ svc.vehicleType|default:"all" }}',
+            '{{ svc.isAvailable|yesno:"true,false" }}'
+          )" title="Edit">
+          <i class="fas fa-pen"></i>
+        </button>
         <form method="POST" action="{% url 'provider_service_delete' svc.serviceId %}" style="display:inline"
               onsubmit="return confirm('Delete {{ svc.serviceName }}?')">
           {% csrf_token %}
@@ -55,6 +80,18 @@
     <div class="svc-footer">
       <span class="svc-price">₹{{ svc.servicePrice }}</span>
       {% if svc.estimatedDuration %}<span class="svc-dur"><i class="fas fa-clock"></i> {{ svc.estimatedDuration }} min</span>{% endif %}
+
+      {# ✅ FIX: use |default filter so empty string "" also maps to 'all' badge #}
+      {% with vtype=svc.vehicleType|default:"all" %}
+        {% if vtype == 'car' %}
+          <span class="badge vtype-car"><i class="fas fa-car"></i> Car</span>
+        {% elif vtype == 'bike' %}
+          <span class="badge vtype-bike"><i class="fas fa-motorcycle"></i> Bike</span>
+        {% else %}
+          <span class="badge vtype-all"><i class="fas fa-th-large"></i> All</span>
+        {% endif %}
+      {% endwith %}
+
       <span class="badge {% if svc.isAvailable %}completed{% else %}danger{% endif %}">
         {% if svc.isAvailable %}Active{% else %}Inactive{% endif %}
       </span>
@@ -68,17 +105,41 @@
   {% endfor %}
 </div>
 
+
+
 {% block extra_js %}
 <script>
-function editService(id, name, desc, price, duration) {
-  const form = document.getElementById('addSvcForm');
-  form.classList.add('open');
-  form.querySelector('[name=service_id]').value = id;
-  form.querySelector('[name=name]').value = name;
-  form.querySelector('[name=description]').value = desc;
-  form.querySelector('[name=price]').value = price;
-  form.querySelector('[name=duration]').value = duration;
-  form.querySelector('h3').textContent = 'Edit Service';
+function resetForm() {
+  document.getElementById('svcId').value           = '';
+  document.getElementById('svcName').value         = '';
+  document.getElementById('svcDesc').value         = '';
+  document.getElementById('svcPrice').value        = '';
+  document.getElementById('svcDuration').value     = '';
+  document.getElementById('svcVehicleType').value  = 'all';
+  document.getElementById('svcAvailable').value    = 'true';
+  document.getElementById('formTitle').textContent = 'Add New Service';
+}
+
+function openAddForm() {
+  resetForm();
+  document.getElementById('addSvcForm').classList.add('open');
+}
+
+function closeForm() {
+  document.getElementById('addSvcForm').classList.remove('open');
+}
+
+function editService(id, name, desc, price, duration, vehicleType, available) {
+  resetForm();
+  document.getElementById('svcId').value           = id;
+  document.getElementById('svcName').value         = name;
+  document.getElementById('svcDesc').value         = desc;
+  document.getElementById('svcPrice').value        = price;
+  document.getElementById('svcDuration').value     = duration;
+  document.getElementById('svcVehicleType').value  = vehicleType || 'all';
+  document.getElementById('svcAvailable').value    = available   || 'true';
+  document.getElementById('formTitle').textContent = 'Edit Service';
+  document.getElementById('addSvcForm').classList.add('open');
 }
 </script>
 {% endblock %}

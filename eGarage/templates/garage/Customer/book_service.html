@@ -21,12 +21,44 @@
     <div class="sec-label-line"></div>
   </div>
 
-  <div class="svc-grid">
+  <!-- Filter Tabs -->
+  <div class="svc-filter-bar">
+    <button class="svc-filter-btn active" onclick="filterServices('all', this)">
+      <i class="fas fa-th"></i> All Services
+    </button>
+    <button class="svc-filter-btn" onclick="filterServices('car', this)">
+      <i class="fas fa-car"></i> Car Services
+    </button>
+    <button class="svc-filter-btn" onclick="filterServices('bike', this)">
+      <i class="fas fa-motorcycle"></i> Bike Services
+    </button>
+  </div>
+
+  <p class="svc-count-text" id="svc-count-text"></p>
+
+  <div class="svc-grid" id="svc-grid">
     {% for svc in services %}
-    <div class="svc-card {% if selected_service == svc.serviceId|stringformat:'s' %}selected{% endif %}"
-         onclick="selectService({{ svc.serviceId }}, '{{ svc.serviceName|escapejs }}', {{ svc.servicePrice }}, this)">
+    <div class="svc-card"
+         id="svc-card-{{ svc.serviceId }}"
+         data-vehicle-type="{{ svc.vehicleType|default:'all' }}"
+         data-id="{{ svc.serviceId }}"
+         data-name="{{ svc.serviceName|escapejs }}"
+         data-price="{{ svc.servicePrice }}"
+         onclick="selectService({{ svc.serviceId }}, this)">
+
       <div class="svc-card-check"><i class="fas fa-check"></i></div>
-      <div class="svc-ic"><i class="fas fa-wrench"></i></div>
+
+      {% if svc.vehicleType == 'car' %}
+      <span class="svc-type-badge car-badge"><i class="fas fa-car"></i> Car</span>
+      {% elif svc.vehicleType == 'bike' %}
+      <span class="svc-type-badge bike-badge"><i class="fas fa-motorcycle"></i> Bike</span>
+      {% else %}
+      <span class="svc-type-badge all-badge"><i class="fas fa-wrench"></i> All Vehicles</span>
+      {% endif %}
+
+      <div class="svc-ic">
+        <i class="fas fa-{% if svc.vehicleType == 'bike' %}motorcycle{% else %}wrench{% endif %}"></i>
+      </div>
       <span class="svc-name">{{ svc.serviceName }}</span>
       <span class="svc-price">₹{{ svc.servicePrice }}</span>
       {% if svc.estimatedDuration %}
@@ -39,6 +71,12 @@
       <p>No services available at the moment.</p>
     </div>
     {% endfor %}
+
+    <div id="svc-no-results"
+         style="display:none;grid-column:1/-1;text-align:center;padding:48px 24px;color:#94a3b8">
+      <i class="fas fa-search" style="font-size:2rem;display:block;margin-bottom:10px"></i>
+      <p>No services found for this vehicle type.</p>
+    </div>
   </div>
 </div>
 
@@ -58,17 +96,16 @@
 
     <form class="bk-form" method="POST" action="{% url 'book_service' %}">
       {% csrf_token %}
-      <input type="hidden" name="service_id" id="service_id" value=""/>
+      <!-- Multiple service_id inputs are injected here dynamically -->
+      <div id="service_ids_container"></div>
 
-      <!-- Row 1: Selected Service + Provider -->
       <div class="form-row">
         <div class="form-group">
-          <label>Selected Service</label>
+          <label>Selected Services</label>
           <div class="selected-svc-pill" id="svc-pill">
             <i class="fas fa-wrench"></i>
-            <span class="pill-text" id="svc-pill-text">Click a service above to select</span>
+            <span class="pill-text" id="svc-pill-text">Click services above to select</span>
           </div>
-          <input type="text" id="selected_svc_display" style="display:none" readonly/>
         </div>
         <div class="form-group">
           <label>Service Provider</label>
@@ -83,7 +120,6 @@
         </div>
       </div>
 
-      <!-- Row 2: Date + Time + Vehicle -->
       <div class="form-row-3">
         <div class="form-group">
           <label>Booking Date</label>
@@ -94,8 +130,6 @@
           <div class="select-wrap">
             <select name="booking_time">
               <option value="">-- Any Time --</option>
-              <option value="08:00">08:00 AM</option>
-              <option value="09:00">09:00 AM</option>
               <option value="10:00">10:00 AM</option>
               <option value="11:00">11:00 AM</option>
               <option value="12:00">12:00 PM</option>
@@ -104,19 +138,23 @@
               <option value="15:00">03:00 PM</option>
               <option value="16:00">04:00 PM</option>
               <option value="17:00">05:00 PM</option>
+              <option value="18:00">06:00 PM</option>
+              <option value="19:00">07:00 PM</option>
+              <option value="20:00">08:00 PM</option>
+              <option value="21:00">09:00 PM</option>
             </select>
           </div>
         </div>
 
-        <!-- ✅ FIXED: Vehicle dropdown — shows ALL vehicles including newly added ones -->
         <div class="form-group">
           <label>Vehicle <span style="color:#e8560a">*</span></label>
           {% if vehicles %}
           <div class="select-wrap">
-            <select name="vehicle_id" required>
+            <select name="vehicle_id" id="vehicle_id_select" required>
               <option value="">-- Select Vehicle --</option>
               {% for v in vehicles %}
-              <option value="{{ v.id }}">
+              <option value="{{ v.id }}"
+                      data-type="{% if v.vehicleType == 'bike' %}bike{% else %}car{% endif %}">
                 {{ v.vehicleNumber }} — {{ v.vehicleModel }}
                 {% if v.vehicleYear %} {{ v.vehicleYear }}{% endif %}
                 ({% if v.vehicleType == 'bike' %}Bike{% else %}Car{% endif %})
@@ -130,17 +168,13 @@
             <i class="fas fa-exclamation-circle" style="color:#dc2626"></i>
             <span style="color:#dc2626;font-weight:700;">
               No vehicles registered —
-              <a href="{% url 'my_vehicle' %}" style="color:#e8560a;text-decoration:underline;">
-                Add one first
-              </a>
+              <a href="{% url 'my_vehicle' %}" style="color:#e8560a;text-decoration:underline;">Add one first</a>
             </span>
           </div>
           {% endif %}
         </div>
-
       </div>
 
-      <!-- Notes -->
       <div class="form-group">
         <label>Additional Notes</label>
         <textarea name="notes" rows="3"
@@ -149,7 +183,6 @@
 
       <div class="form-divider"></div>
 
-      <!-- Actions -->
       <div class="form-actions">
         <a href="{% url 'customer_home' %}" class="btn-secondary-outline">
           <i class="fas fa-times"></i> Cancel
@@ -165,32 +198,209 @@
 </div>
 
 {% block extra_js %}
-<script>
-function selectService(id, name, price, cardEl) {
-  const serviceInput = document.getElementById('service_id');
-  const pill         = document.getElementById('svc-pill');
-  const pillText     = document.getElementById('svc-pill-text');
-  const displayInput = document.getElementById('selected_svc_display');
-
-  // Clicking the already-selected card → deselect
-  if (cardEl.classList.contains('selected')) {
-    cardEl.classList.remove('selected');
-    serviceInput.value = '';
-    displayInput.value = '';
-    pill.classList.remove('has-value');
-    pillText.textContent = 'Click a service above to select';
-    return;
-  }
-
-  // Select new card
-  document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
-  cardEl.classList.add('selected');
-
-  serviceInput.value = id;
-  displayInput.value = name + ' — ₹' + price.toLocaleString('en-IN');
-  pill.classList.add('has-value');
-  pillText.textContent = name + '  —  ₹' + price.toLocaleString('en-IN');
+<style>
+/* ── Filter bar ── */
+.svc-filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
 }
+.svc-filter-btn {
+  padding: 9px 20px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 50px;
+  background: #fff;
+  font-size: .82rem;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .18s;
+}
+.svc-filter-btn:hover  { border-color: #e8560a; color: #e8560a; }
+.svc-filter-btn.active { background: #e8560a; border-color: #e8560a; color: #fff; }
+
+/* ── Badge ── */
+.svc-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 50px;
+  margin-bottom: 6px;
+}
+.car-badge  { background: #eff6ff; color: #1d4ed8; }
+.bike-badge { background: #fef3ec; color: #e8560a; }
+.all-badge  { background: #f0fdf4; color: #16a34a; }
+
+.svc-count-text { font-size: .8rem; color: #94a3b8; margin-bottom: 10px; }
+
+/* ── CRITICAL: hidden filter & multi-select ── */
+.svc-card.hidden-filter { display: none !important; }
+
+/* Multiple cards can be selected simultaneously */
+.svc-card {
+  cursor: pointer;
+  position: relative;
+  transition: box-shadow .2s, border-color .2s, transform .15s;
+}
+.svc-card.selected {
+  border-color: #e8560a !important;
+  box-shadow: 0 0 0 2px rgba(232,86,10,.25) !important;
+  background: #fff8f5 !important;
+}
+/* Hide check icon by default, show only on selected */
+.svc-card-check { display: none; }
+.svc-card.selected .svc-card-check {
+  display: flex;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  background: #e8560a;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: .7rem;
+}
+
+/* ── Multi-select pill tags ── */
+.selected-svc-pill.has-value { flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill-tag {
+  display: inline-block;
+  background: #fff0e8;
+  color: #e8560a;
+  border: 1px solid #fbc9a8;
+  border-radius: 50px;
+  padding: 2px 10px;
+  font-size: .78rem;
+  font-weight: 700;
+}
+.pill-total {
+  font-size: .82rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-left: 4px;
+}
+</style>
+
+<script>
+/* ── Multi-select tracker: stores { id -> { name, price } } ── */
+var _selectedServices = {};
+
+/* ── Rebuild hidden inputs & pill display from _selectedServices ── */
+function _updateSelectionUI() {
+  var container = document.getElementById('service_ids_container');
+  var pill      = document.getElementById('svc-pill');
+  var pillText  = document.getElementById('svc-pill-text');
+  var ids       = Object.keys(_selectedServices);
+
+  // Rebuild hidden inputs (one per selected service, same name → Django getlist)
+  container.innerHTML = '';
+  ids.forEach(function(id) {
+    var inp = document.createElement('input');
+    inp.type  = 'hidden';
+    inp.name  = 'service_id';
+    inp.value = id;
+    container.appendChild(inp);
+  });
+
+  // Update pill
+  if (ids.length === 0) {
+    pill.classList.remove('has-value');
+    pillText.textContent = 'Click services above to select';
+  } else {
+    pill.classList.add('has-value');
+    var total = 0;
+    var names = ids.map(function(id) {
+      total += parseFloat(_selectedServices[id].price) || 0;
+      return _selectedServices[id].name;
+    });
+    pillText.innerHTML =
+      names.map(function(n) {
+        return '<span class="pill-tag">' + n + '</span>';
+      }).join('') +
+      '<span class="pill-total">Total: ₹' + total.toLocaleString('en-IN') + '</span>';
+  }
+}
+
+/* ── Toggle a service card (MULTI SELECT) ── */
+function selectService(id, cardEl) {
+  if (_selectedServices[id]) {
+    // Already selected → deselect
+    cardEl.classList.remove('selected');
+    delete _selectedServices[id];
+  } else {
+    // Not selected → select
+    cardEl.classList.add('selected');
+    _selectedServices[id] = {
+      name:  cardEl.dataset.name,
+      price: cardEl.dataset.price
+    };
+  }
+  _updateSelectionUI();
+}
+
+/* ── Filter by vehicle type ── */
+function filterServices(type, btnEl) {
+  document.querySelectorAll('.svc-filter-btn').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  btnEl.classList.add('active');
+
+  var cards   = document.querySelectorAll('.svc-card');
+  var noRes   = document.getElementById('svc-no-results');
+  var countEl = document.getElementById('svc-count-text');
+  var visible = 0;
+
+  cards.forEach(function(card) {
+    var cardType = card.dataset.vehicleType || 'all';
+    var show     = type === 'all' || cardType === type || cardType === 'all';
+    card.classList.toggle('hidden-filter', !show);
+    if (show) visible++;
+  });
+
+  // Deselect any selected cards that are now hidden
+  var changed = false;
+  Object.keys(_selectedServices).forEach(function(id) {
+    var selCard = document.getElementById('svc-card-' + id);
+    if (selCard && selCard.classList.contains('hidden-filter')) {
+      selCard.classList.remove('selected');
+      delete _selectedServices[id];
+      changed = true;
+    }
+  });
+  if (changed) _updateSelectionUI();
+
+  noRes.style.display = visible === 0 ? 'block' : 'none';
+  var label = type === 'all' ? 'All' : (type === 'car' ? 'Car' : 'Bike');
+  countEl.textContent = visible + ' ' + label + ' service' + (visible !== 1 ? 's' : '') + ' available';
+}
+
+/* ── Auto-switch filter when vehicle is picked from dropdown ── */
+var vehicleSelect = document.getElementById('vehicle_id_select');
+if (vehicleSelect) {
+  vehicleSelect.addEventListener('change', function() {
+    var opt   = this.options[this.selectedIndex];
+    var vtype = opt ? opt.dataset.type : null;
+    if (vtype) {
+      var btn = document.querySelector('.svc-filter-btn[onclick*="' + vtype + '"]');
+      if (btn) filterServices(vtype, btn);
+    }
+  });
+}
+
+/* ── Init count on page load ── */
+document.addEventListener('DOMContentLoaded', function() {
+  filterServices('all', document.querySelector('.svc-filter-btn.active'));
+});
 </script>
 {% endblock %}
 

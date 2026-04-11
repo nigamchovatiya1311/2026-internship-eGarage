@@ -36,7 +36,13 @@
           <tr data-role="{{ b.status }}">
             <td><strong>#BK{{ b.id }}</strong></td>
             <td><strong>{{ b.customer.user.email }}</strong></td>
-            <td>{{ b.service.name }}</td>
+            <td>
+            {% for svc in b.services.all %}
+                  <span style="display:inline-block;background:#fff0e8;color:#e8560a;border:1px solid #fbc9a8;border-radius:50px;padding:1px 8px;font-size:.75rem;font-weight:700;margin:1px;">{{ svc.serviceName }}</span>
+                {% empty %}
+                  <span style="display:inline-block;background:#fff0e8;color:#e8560a;border:1px solid #fbc9a8;border-radius:50px;padding:1px 8px;font-size:.75rem;font-weight:700;margin:1px;">{{ b.service.name }}</span>
+            {% endfor %}
+            </td>
             <td>{{ b.provider.garage_name }}</td>
             <td>{{ b.date|date:"d M Y" }}</td>
             <td>{{ b.time_slot }}</td>

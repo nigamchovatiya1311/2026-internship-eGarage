@@ -39,7 +39,7 @@
                  oninput="debounceSearch(this)"/>
         </div>
 
-        <select class="filter-select" name="provider" onchange="document.getElementById('filterForm').submit()">
+        {% comment %} <select class="filter-select" name="provider" onchange="document.getElementById('filterForm').submit()">
           <option value="">All Providers</option>
           {% for p in provider_list %}
             <option value="{{ p.providerId }}"
@@ -54,6 +54,14 @@
           <option value="available"   {% if request.GET.status == 'available' %}selected{% endif %}>Available</option>
           <option value="unavailable" {% if request.GET.status == 'unavailable' %}selected{% endif %}>Unavailable</option>
         </select>
+
+        <!-- ✅ Vehicle Type filter -->
+        <select class="filter-select" name="vehicle_type" onchange="document.getElementById('filterForm').submit()">
+          <option value="">All Vehicle Types</option>
+          <option value="car"  {% if request.GET.vehicle_type == 'car' %}selected{% endif %}>🚗 Car Only</option>
+          <option value="bike" {% if request.GET.vehicle_type == 'bike' %}selected{% endif %}>🏍️ Bike Only</option>
+          <option value="all"  {% if request.GET.vehicle_type == 'all' %}selected{% endif %}>🔧 All Vehicles</option>
+        </select> {% endcomment %}
       </div>
     </div>
   </form>
@@ -70,6 +78,7 @@
             <th>Description</th>
             <th>Price</th>
             <th>Duration</th>
+            <th>Vehicle Type</th>
             <th>Available</th>
             <th>Actions</th>
           </tr>
@@ -77,12 +86,27 @@
         <tbody>
           {% for svc in services %}
           <tr>
-            <td>#SVC{{ svc.id|stringformat:"02d" }}</td>
+            <td>#SVC{{ svc.serviceId|stringformat:"02d" }}</td>
             <td><strong>{{ svc.name }}</strong></td>
             <td>{{ svc.provider.garage_name }}</td>
             <td>{{ svc.description|truncatewords:8|default:"—" }}</td>
             <td>₹{{ svc.price }}</td>
             <td>{{ svc.duration_minutes }} min</td>
+            <td>
+              {% if svc.vehicleType == 'car' %}
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:50px;font-size:11px;font-weight:700;background:#eff6ff;color:#1d4ed8;">
+                  <i class="fas fa-car"></i> Car
+                </span>
+              {% elif svc.vehicleType == 'bike' %}
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:50px;font-size:11px;font-weight:700;background:#fef3ec;color:#e8560a;">
+                  <i class="fas fa-motorcycle"></i> Bike
+                </span>
+              {% else %}
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:50px;font-size:11px;font-weight:700;background:#f0fdf4;color:#16a34a;">
+                  <i class="fas fa-wrench"></i> All
+                </span>
+              {% endif %}
+            </td>
             <td>
               {% if svc.is_available %}
                 <span class="badge success">Yes</span>
@@ -94,17 +118,18 @@
               <div class="action-btns">
                 <button class="act-btn view"
                   onclick="openServiceModal(
-                    '{{ svc.id }}',
+                    '{{ svc.serviceId }}',
                     '{{ svc.name|escapejs }}',
                     '{{ svc.description|escapejs }}',
                     '{{ svc.price }}',
                     '{{ svc.duration_minutes }}',
-                    '{{ svc.provider.providerId }}'
+                    '{{ svc.provider.providerId }}',
+                    '{{ svc.vehicleType|default:"all" }}'
                   )" title="Edit">
                   <i class="fas fa-pen"></i>
                 </button>
                 <button class="act-btn del"
-                  onclick="confirmDelete('service','{{ svc.name|escapejs }}', {{ svc.id }})"
+                  onclick="confirmDelete('service','{{ svc.name|escapejs }}', {{ svc.serviceId }})"
                   title="Delete">
                   <i class="fas fa-trash"></i>
                 </button>
@@ -208,6 +233,19 @@
         <textarea name="description" id="modalDesc" rows="3"
                   placeholder="Short description..."
                   style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;background:#f8fafc;"></textarea>
+      </div>
+
+      <!-- Vehicle Type -->
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:5px;letter-spacing:0.5px;">
+          VEHICLE TYPE
+        </label>
+        <select name="vehicle_type" id="modalVehicleType" required
+          style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f8fafc;">
+          <option value="all">🔧 All Vehicles (Car + Bike)</option>
+          <option value="car">🚗 Car Only</option>
+          <option value="bike">🏍️ Bike Only</option>
+        </select>
       </div>
 
       <!-- Price + Duration -->
@@ -323,22 +361,24 @@
 {% block extra_js %}
 <script>
 /* ── Add / Edit modal ───────────────────────────────────── */
-function openServiceModal(id, name, desc, price, duration, providerId) {
-  document.getElementById('modalServiceId').value  = '';
-  document.getElementById('modalName').value       = '';
-  document.getElementById('modalDesc').value       = '';
-  document.getElementById('modalPrice').value      = '';
-  document.getElementById('modalDuration').value   = '';
-  document.getElementById('modalProviderId').value = '';
+function openServiceModal(id, name, desc, price, duration, providerId, vehicleType) {
+  document.getElementById('modalServiceId').value    = '';
+  document.getElementById('modalName').value         = '';
+  document.getElementById('modalDesc').value         = '';
+  document.getElementById('modalPrice').value        = '';
+  document.getElementById('modalDuration').value     = '';
+  document.getElementById('modalProviderId').value   = '';
+  document.getElementById('modalVehicleType').value  = 'all';  // ✅ default reset
 
   if (id) {
     document.getElementById('modalHeading').textContent  = 'EDIT SERVICE';
     document.getElementById('modalServiceId').value      = id;
-    document.getElementById('modalName').value           = name       || '';
-    document.getElementById('modalDesc').value           = desc       || '';
-    document.getElementById('modalPrice').value          = price      || '';
-    document.getElementById('modalDuration').value       = duration   || '';
-    document.getElementById('modalProviderId').value     = providerId || '';
+    document.getElementById('modalName').value           = name        || '';
+    document.getElementById('modalDesc').value           = desc        || '';
+    document.getElementById('modalPrice').value          = price       || '';
+    document.getElementById('modalDuration').value       = duration    || '';
+    document.getElementById('modalProviderId').value     = providerId  || '';
+    document.getElementById('modalVehicleType').value    = vehicleType || 'all';  // ✅ pre-fill on edit
   } else {
     document.getElementById('modalHeading').textContent  = 'ADD SERVICE';
   }

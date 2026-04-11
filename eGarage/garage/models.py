@@ -22,6 +22,13 @@ VEHICLE_TYPE_CHOICES = (
     ('bike', 'Bike'),
 )
 
+# Choices for which vehicle type a Service applies to
+SERVICE_VEHICLE_TYPE_CHOICES = (
+    ('car',  'Car Only'),
+    ('bike', 'Bike Only'),
+    ('all',  'All Vehicles'),
+)
+
 BOOKING_STATUS_CHOICES = (
     ('pending',     'Pending'),
     ('confirmed',   'Confirmed'),
@@ -109,7 +116,31 @@ class CustomerProfile(models.Model):
 
 
 # ──────────────────────────────────────────────
-#  3. SERVICES
+#  3. VEHICLE
+#     A customer can have multiple vehicles
+# ──────────────────────────────────────────────
+
+class Vehicle(models.Model):
+    customer      = models.ForeignKey(
+                        CustomerProfile,
+                        on_delete=models.CASCADE,
+                        related_name='vehicles'
+                    )
+    vehicleType   = models.CharField(max_length=10, choices=VEHICLE_TYPE_CHOICES, default='car')
+    vehicleNumber = models.CharField(max_length=20)
+    vehicleModel  = models.CharField(max_length=50)
+    vehicleYear   = models.IntegerField(null=True, blank=True)
+    vehicleColor  = models.CharField(max_length=30, null=True, blank=True)
+
+    class Meta:
+        db_table = "vehicle"
+
+    def __str__(self):
+        return f"{self.vehicleNumber} – {self.vehicleModel}"
+
+
+# ──────────────────────────────────────────────
+#  4. SERVICES
 # ──────────────────────────────────────────────
 
 class Services(models.Model):
@@ -120,6 +151,12 @@ class Services(models.Model):
     servicePrice       = models.DecimalField(max_digits=10, decimal_places=2)
     estimatedDuration  = models.IntegerField(help_text="Duration in minutes", null=True, blank=True)
     isAvailable        = models.BooleanField(default=True)
+    vehicleType        = models.CharField(          # ✅ NEW — Car / Bike / All
+                             max_length=10,
+                             choices=SERVICE_VEHICLE_TYPE_CHOICES,
+                             default='all',
+                             help_text="Which vehicle type this service applies to"
+                         )
 
     class Meta:
         db_table = "services"
@@ -144,9 +181,17 @@ class Bookings(models.Model):
                         on_delete=models.CASCADE,
                         related_name='bookings'
                     )
-    service       = models.ForeignKey(
+    # ✅ CHANGED: ForeignKey → ManyToManyField (supports multiple services per booking)
+    services      = models.ManyToManyField(
                         Services,
-                        on_delete=models.CASCADE,
+                        related_name='bookings'
+                    )
+    # ✅ NEW: specific vehicle being serviced
+    vehicle       = models.ForeignKey(
+                        Vehicle,
+                        on_delete=models.SET_NULL,
+                        null=True,
+                        blank=True,
                         related_name='bookings'
                     )
     bookingDate   = models.DateField()
@@ -160,6 +205,16 @@ class Bookings(models.Model):
 
     def __str__(self):
         return f"Booking #{self.bookingId} – {self.customer.user.email}"
+
+    # ✅ NEW: sum of all selected service prices
+    @property
+    def total_price(self):
+        return sum(s.servicePrice for s in self.services.all())
+
+    # ✅ NEW: readable service list (useful in admin & templates)
+    @property
+    def service_names(self):
+        return ", ".join(s.serviceName for s in self.services.all())
 
 
 # ──────────────────────────────────────────────
