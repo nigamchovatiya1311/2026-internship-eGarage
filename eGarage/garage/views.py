@@ -2817,7 +2817,8 @@ def provider_invoice_generate(request, booking_id):
 
         # ── Send email to customer ──────────────────────────────
         customer_email = booking.customer.user.email
-        customer_name  = booking.customer.user.get_full_name() or customer_email
+        # customer_name  = booking.customer.user.get_full_name() or customer_email
+        customer_name = f"{booking.customer.user.first_name} {booking.customer.user.last_name}".strip() or customer_email
         invoice_url    = request.build_absolute_uri(
             f'/garage/serviceProvider/invoice/{invoice.invoiceId}/view/'
         )

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OTP Verification – eGarage</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #eef0f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .card-wrap {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 44px 40px 36px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.08);
+    }
+
+    /* ── Icon circle (matches login page) ── */
+    .icon-circle {
+      width: 72px;
+      height: 72px;
+      background: #ffe5d6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .icon-circle svg {
+      width: 36px;
+      height: 36px;
+      fill: #e8520a;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 900;
+      color: #1a1a2e;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 13.5px;
+      color: #888;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid #e8e8ee;
+      margin-bottom: 24px;
+    }
+
+    /* ── OTP Boxes ── */
+    .otp-boxes {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .otp-box {
+      width: 54px;
+      height: 58px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      border: 1.8px solid #dde1ea;
+      border-radius: 10px;
+      outline: none;
+      background: #f7f8fc;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .otp-box:focus {
+      border-color: #e8520a;
+      box-shadow: 0 0 0 3px rgba(232, 82, 10, 0.15);
+      background: #fff;
+    }
+    .otp-box.filled {
+      border-color: #e8520a;
+      background: #fff5f0;
+      color: #e8520a;
+    }
+
+    /* ── Verify Button ── */
+    .btn-verify {
+      width: 100%;
+      padding: 14px;
+      background: #e8520a;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-verify:hover  { background: #c94408; }
+    .btn-verify:active { transform: scale(0.98); }
+
+    /* ── Divider OR ── */
+    .or-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 22px 0 18px;
+      color: #aaa;
+      font-size: 13px;
+    }
+    .or-line::before,
+    .or-line::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e5e5ec;
+    }
+
+    /* ── Bottom links ── */
+    .bottom-text {
+      text-align: center;
+      font-size: 13.5px;
+      color: #666;
+    }
+    .bottom-text a {
+      color: #e8520a;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .bottom-text a:hover { text-decoration: underline; }
+
+    /* ── Countdown ── */
+    .timer-text {
+      text-align: center;
+      font-size: 12.5px;
+      color: #aaa;
+      margin-top: 14px;
+    }
+    .timer-text strong { color: #555; }
+
+    /* ── Alerts ── */
+    .alert { border-radius: 8px; font-size: 13.5px; }
+  </style>
+</head>
+<body>
+
+<div class="card-wrap">
+
+  <!-- Icon -->
+  <div class="icon-circle">
+    <!-- Shield / OTP icon -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 1L3 5v6c0 5.25 3.75 10.15 9 11.35C17.25 21.15 21 16.25 21 11V5L12 1zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+    </svg>
+  </div>
+
+  <h2>OTP Verification</h2>
+  <p class="subtitle">Enter the 6-digit code sent to your registered email</p>
+
+  <hr class="divider" />
+
+  <!-- Alerts -->
+  {% if error %}
+    <div class="alert alert-danger py-2 mb-3">{{ error }}</div>
+  {% endif %}
+  {% if success %}
+    <div class="alert alert-success py-2 mb-3">{{ success }}</div>
+  {% endif %}
+
+  {% if not expired %}
+
+  <form method="POST" action="{% url 'otp_verify' %}" id="otpForm">
+    {% csrf_token %}
+    <input type="hidden" name="otp" id="otpHidden" />
+
+    <!-- 6 boxes -->
+    <div class="otp-boxes">
+      <input class="otp-box" type="text" inputmode="numeric" maxlength="1" pattern="\d" autocomplete="one-time-code" />
+      <input class="otp-box" type="text" inputmode="numeric" maxlength="1" pattern="\d" />
+      <input class="otp-box" type="text" inputmode="numeric" maxlength="1" pattern="\d" />
+      <input class="otp-box" type="text" inputmode="numeric" maxlength="1" pattern="\d" />
+      <input class="otp-box" type="text" inputmode="numeric" maxlength="1" pattern="\d" />
+      <input class="otp-box" type="text" inputmode="numeric" maxlength="1" pattern="\d" />
+    </div>
+
+    <button type="submit" class="btn-verify">Verify OTP →</button>
+  </form>
+
+  <!-- Timer -->
+  <p class="timer-text">
+    Code expires in <strong id="countdown">10:00</strong>
+  </p>
+
+  <!-- Resend -->
+  <div class="or-line">or</div>
+  <p class="bottom-text">
+    Didn't receive the code?
+    <a href="{% url 'otp_resend' %}">Resend OTP</a>
+  </p>
+
+  {% else %}
+
+  <div class="text-center mt-2">
+    <a href="{% url 'signup' %}" class="btn-verify d-block text-decoration-none text-center">← Back to Sign Up</a>
+  </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+  const boxes  = document.querySelectorAll('.otp-box');
+  const hidden = document.getElementById('otpHidden');
+  const form   = document.getElementById('otpForm');
+
+  if (boxes.length) boxes[0].focus();
+
+  boxes.forEach((box, i) => {
+    box.addEventListener('input', () => {
+      box.value = box.value.replace(/\D/g, '').slice(-1);
+      box.classList.toggle('filled', !!box.value);
+      if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
+    });
+
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !box.value && i > 0) {
+        boxes[i - 1].value = '';
+        boxes[i - 1].classList.remove('filled');
+        boxes[i - 1].focus();
+      }
+    });
+
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData)
+        .getData('text').replace(/\D/g, '').slice(0, 6);
+      pasted.split('').forEach((ch, idx) => {
+        if (boxes[idx]) {
+          boxes[idx].value = ch;
+          boxes[idx].classList.add('filled');
+        }
+      });
+      boxes[Math.min(pasted.length, boxes.length - 1)].focus();
+    });
+  });
+
+  form.addEventListener('submit', (e) => {
+    const otp = Array.from(boxes).map(b => b.value).join('');
+    if (otp.length < 6) { e.preventDefault(); return; }
+    hidden.value = otp;
+  });
+
+  // Countdown
+  let seconds = 600;
+  const el = document.getElementById('countdown');
+  if (el) {
+    const t = setInterval(() => {
+      seconds--;
+      if (seconds <= 0) {
+        clearInterval(t);
+        el.textContent = '00:00';
+        el.style.color = '#e8520a';
+      } else {
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        el.textContent = `${m}:${s}`;
+        if (seconds <= 60) el.style.color = '#e8520a';
+      }
+    }, 1000);
+  }
+</script>
+
+</body>
+</html>

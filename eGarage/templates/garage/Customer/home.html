@@ -62,13 +62,13 @@
           <i class="fas fa-wrench"></i>
         </div>
         <div class="booking-info">
-          <span class="booking-service">{{ booking.service.serviceName }}</span>
+          <span class="booking-service">{{ booking.service_names }}</span>
           <span class="booking-provider">{{ booking.provider.garageName }}</span>
         </div>
         <div class="booking-right">
           <span class="badge {{ booking.bookingStatus }}">{{ booking.get_bookingStatus_display }}</span>
           <span class="booking-date">{{ booking.bookingDate|date:"d M Y" }}</span>
-          <span class="booking-amount">₹{{ booking.service.servicePrice }}</span>
+          <span class="booking-amount">₹{{ booking.total_price }}</span>
         </div>
       </div>
       {% empty %}
